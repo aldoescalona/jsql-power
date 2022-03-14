@@ -56,7 +56,7 @@ public class Between extends Predicate {
             throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
 
-        types.add(new ParamColumnType(value1, aliasColumnType.getFullColumnName(), aliasColumnType.getColumnType()));
-        types.add(new ParamColumnType(value2, aliasColumnType.getFullColumnName(), aliasColumnType.getColumnType()));
+        types.add(new ParamColumnType(value1, aliasColumnType.getColumnType()));
+        types.add(new ParamColumnType(value2, aliasColumnType.getColumnType()));
     }
 }

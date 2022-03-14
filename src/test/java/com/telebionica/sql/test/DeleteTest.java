@@ -62,8 +62,6 @@ public class DeleteTest {
             
             int c  = query.execute();
             
-            System.out.println(" C: " + c);
-            
         } catch (Exception e) {
             e.printStackTrace();
         }

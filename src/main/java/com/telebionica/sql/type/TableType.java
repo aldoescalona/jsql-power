@@ -17,7 +17,7 @@ public class TableType {
     private String name;
     protected Class entityClass;
     private List<ColumnType> columns;
-    
+    private List<ManyToOneType> manyToOnes;
     
 
     public TableType(String name, Class entityClass) {
@@ -48,16 +48,32 @@ public class TableType {
     public void setColumns(List<ColumnType> columns) {
         this.columns = columns;
     }
+
+    public List<ManyToOneType> getManyToOnes() {
+        return manyToOnes;
+    }
+
+    public void setManyToOnes(List<ManyToOneType> manyToOnes) {
+        this.manyToOnes = manyToOnes;
+    }
     
     public ColumnType getFieldColumnType(String fieldName){
         ColumnType ct = columns.stream().filter(e->e.getFieldName().equals(fieldName)).findAny().orElse(null);
         return ct;
     }
     
+    public ColumnType getColumnType(String columnName){
+        ColumnType ct = columns.stream().filter(e->e.getColumnName().equals(columnName)).findAny().orElse(null);
+        return ct;
+    }
+    
     public List<ColumnType> getIdColumns(){
         List<ColumnType> ids = columns.stream().filter(e -> e.isPrimary()).collect(Collectors.toList());
         return ids;
-        
     }
     
+    public ManyToOneType getManyToOneType(String fieldName){
+        ManyToOneType ct = manyToOnes.stream().filter(e->e.getFieldName().equals(fieldName)).findAny().orElse(null);
+        return ct;
+    }
 }

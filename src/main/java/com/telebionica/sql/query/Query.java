@@ -13,6 +13,7 @@ import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.type.TableType;
 import com.telebionica.sql.data.ParamColumnType;
 import com.telebionica.sql.data.SelectColumnType;
+import com.telebionica.sql.type.ManyToOneType;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -96,7 +97,7 @@ public class Query<E> {
             return this;
             // throw new QueryBuilderException("No se encuentra el path " + fieldPath);
         }
-        queryBuilder.joins(path, alias, rootJoinNodes, entityClass, joinYype);
+        queryBuilder.joins(path, alias, rootJoinNodes, tableType, joinYype);
 
         Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
         String json = gson.toJson(rootJoinNodes);
@@ -127,8 +128,77 @@ public class Query<E> {
 
         this.entityClass = (Class<E>) e.getClass();
         tableType = queryBuilder.getTableType(entityClass);
+        
+        
+        List<ColumnType> cols = tableType.getColumns();
+        
+        List<ParamColumnType> insertParams = new ArrayList();
+        for(ColumnType ct:cols){
+            ParamColumnType param = new ParamColumnType(null, ct);
+            param.getter(e);
+            insertParams.add(param);
+        }
 
-        List<ColumnType> selects = tableType.getColumns();
+        StringBuilder sb = new StringBuilder();
+        StringBuilder sbvalues = new StringBuilder();
+        sb.append("INSERT INTO ");
+        
+        if (schema != null) {
+            sb.append(schema).append(".");
+        }
+        
+        sb.append(tableType.getName());
+        
+        sb.append(" (");
+        
+        
+        List<ManyToOneType> m2otList = tableType.getManyToOnes();
+        
+        for(ManyToOneType m2o:m2otList){
+            
+            
+            TableType otherTT = queryBuilder.getTableType(m2o.getFieldClass());
+            System.out.println(" " + otherTT);
+            List<JoinColumn> jcs = m2o.getJoiners();
+            
+            for(JoinColumn jc:jcs){
+                String name = jc.name();
+                otherTT.getFieldColumnType(name);
+            }
+        }
+        
+        
+        Iterator<ParamColumnType> colIt = insertParams.iterator();
+        while(colIt.hasNext()){
+            ParamColumnType ct = colIt.next();
+            sbvalues.append("?");
+            
+            if(colIt.hasNext()){
+                sb.append(", ");
+                sbvalues.append(", ");
+            }
+        }
+        
+        sb.append(" ) VALUES(");
+        sb.append(sbvalues);
+        sb.append(")");
+        
+        String query = sb.toString();
+        
+        try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
+            
+            int i = 1;
+            for(ParamColumnType val:insertParams){
+                if (val.getColumnType().getScale() == null) {
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
+                } else {
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
+                }
+            }
+            pstm.executeUpdate();
+        }
+        
+        System.out.println(" INSERT " + sb);
 
         return 0;
     }
@@ -157,9 +227,9 @@ public class Query<E> {
             int i = 1;
             for (ParamColumnType val : params) {
                 if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue());
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
                 } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getScale());
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
                 }
             }
 
@@ -191,9 +261,9 @@ public class Query<E> {
             int i = 1;
             for (ParamColumnType val : params) {
                 if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue());
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
                 } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getScale());
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
                 }
             }
 
@@ -217,20 +287,16 @@ public class Query<E> {
             for (ParamColumnType val : params) {
 
                 if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue());
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
                 } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getScale());
+                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
                 }
             }
 
-            System.out.println(" R: ");
             c = pstm.executeUpdate();
 
         }
-
-        // Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
-        // String json = gson.toJson(list);
-        // System.out.println(" LIST: " + json);
+        
         return c;
     }
 
@@ -245,7 +311,7 @@ public class Query<E> {
                 existe = existe || st.push(instance, rs);
             }
             if (existe) {
-                node.push(parent, instance);
+                node.getManyToOneType().setter(parent, instance);
                 push(instance, node.getChildren(), rs);
             }
         }

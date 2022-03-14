@@ -6,6 +6,7 @@
 package com.telebionica.sql.query;
 
 import com.telebionica.sql.data.SelectColumnType;
+import com.telebionica.sql.type.ManyToOneType;
 import com.telebionica.sql.type.TableType;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -22,28 +23,29 @@ import javax.persistence.JoinColumn;
  */
 public class JoinNode {
     
-    private String fieldName;
     private String alias;
+    private ManyToOneType manyToOneType;
     private TableType tableType;
     private List<SelectColumnType> selectColumns = new ArrayList();
     private Query.JOINTYPE joinType;
-    protected List<JoinColumn> joiners;
     private List<JoinNode> children = new ArrayList<>();
 
-    public String getFieldName() {
-        return fieldName;
+    public JoinNode(String alias, ManyToOneType manyToOneType) {
+        this.alias = alias;
+        this.manyToOneType = manyToOneType;
     }
 
-    public void setFieldName(String fieldName) {
-        this.fieldName = fieldName;
+
+    public String getFieldName() {
+        return manyToOneType.getFieldName();
     }
 
     public String getAlias() {
         return alias;
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
+    public ManyToOneType getManyToOneType() {
+        return manyToOneType;
     }
 
     public TableType getTableType() {
@@ -63,11 +65,7 @@ public class JoinNode {
     }
 
     public List<JoinColumn> getJoiners() {
-        return joiners;
-    }
-
-    public void setJoiners(List<JoinColumn> joiners) {
-        this.joiners = joiners;
+        return manyToOneType.getJoiners();
     }
 
     public List<JoinNode> getChildren() {
@@ -86,20 +84,4 @@ public class JoinNode {
         this.selectColumns = selectColumns;
     }
     
-    public void push(Object obj, Object child) throws Exception{
-        Method m = getWriteMethod(obj.getClass(), getFieldName());
-        m.invoke(obj, child);
-    }
-    
-    
-    public Method getWriteMethod(Class clazz, String propertyName) throws IntrospectionException {
-        BeanInfo beanInfo = Introspector.getBeanInfo(clazz);
-        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-        for (PropertyDescriptor pd : propertyDescriptors) {
-            if (pd.getName().equalsIgnoreCase(propertyName)) {
-                return pd.getWriteMethod();
-            }
-        }
-        return null;
-    }
 }

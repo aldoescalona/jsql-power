@@ -13,6 +13,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.Table;
 import com.telebionica.sql.type.ColumnType;
+import com.telebionica.sql.type.ManyToOneType;
 import com.telebionica.sql.type.TableType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -30,8 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.persistence.JoinColumns;
 
@@ -52,6 +51,35 @@ public abstract class AbstractQueryBuilder {
         return query;
     }
 
+    private void addColumnType(Field field, List<ColumnType> columns, TableType tableType ) {
+        Column colann = field.getAnnotation(Column.class);
+        if (colann != null) {
+            ColumnType ct = new ColumnType(colann.name(), field.getName(), field.getType(), tableType);
+            Id idann = field.getAnnotation(Id.class);
+            ct.setPrimary(idann != null);
+            columns.add(ct);
+        }
+    }
+
+    private void addManyToOneType(Field field, List<ManyToOneType> manyToOneTypes, TableType tableType ) {
+        JoinColumn jcann = field.getAnnotation(JoinColumn.class);
+        JoinColumns jcanns = field.getAnnotation(JoinColumns.class);
+        List<JoinColumn> joiners = null;
+        if (jcann != null) {
+            joiners = new ArrayList();
+            joiners.add(jcann);
+        }
+
+        if (jcanns != null) {
+            joiners = Arrays.asList(jcanns.value());
+        }
+        
+        if(joiners != null && !joiners.isEmpty()){
+            ManyToOneType m2ot = new ManyToOneType(field.getName(), field.getType(), joiners, tableType);
+            manyToOneTypes.add(m2ot);
+        }
+    }
+
     private <E> TableType buildTableType(Class<E> entityClass) throws SQLException, QueryBuilderException {
 
         Table ann = (Table) entityClass.getDeclaredAnnotation(Table.class);
@@ -60,25 +88,21 @@ public abstract class AbstractQueryBuilder {
         }
 
         String tableNeme = ann.name();
+        
+        TableType tableType = new TableType(tableNeme, entityClass);
 
-        List<ColumnType> colums = new ArrayList();
+        List<ColumnType> columns = new ArrayList();
+        List<ManyToOneType> manyToOneTypes = new ArrayList();
 
         Field[] scopeFields = entityClass.getDeclaredFields();
 
-        for (Field f : scopeFields) {
-            Column colann = f.getAnnotation(Column.class);
-            if (colann != null) {
-
-                ColumnType ct = new ColumnType(colann.name(), f.getName(), f.getType());
-                Id idann = f.getAnnotation(Id.class);
-                ct.setPrimary(idann != null);
-                colums.add(ct);
-
-            }
+        for (Field field : scopeFields) {
+            addColumnType(field, columns, tableType);
+            addManyToOneType(field, manyToOneTypes, tableType);
         }
 
         StringBuilder sb = new StringBuilder("SELECT ");
-        Iterator<ColumnType> colIt = colums.iterator();
+        Iterator<ColumnType> colIt = columns.iterator();
 
         while (colIt.hasNext()) {
             ColumnType columnType = colIt.next();
@@ -101,10 +125,10 @@ public abstract class AbstractQueryBuilder {
         try ( Connection conn = getConnection();  PreparedStatement pst = conn.prepareStatement(query);  ResultSet rs = pst.executeQuery()) {
             ResultSetMetaData mdrd = rs.getMetaData();
 
-            for (int i = 0; i < colums.size(); i++) {
+            for (int i = 0; i < columns.size(); i++) {
                 int index = i + 1;
 
-                ColumnType columnType = colums.get(i);
+                ColumnType columnType = columns.get(i);
 
                 String cname = mdrd.getColumnName(index);
                 Integer ctype = mdrd.getColumnType(index);
@@ -118,9 +142,9 @@ public abstract class AbstractQueryBuilder {
             }
         }
 
-        TableType tableType = new TableType(tableNeme, entityClass);
-
-        tableType.setColumns(colums);
+        
+        tableType.setColumns(columns);
+        tableType.setManyToOnes(manyToOneTypes);
 
         Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
         String json = gson.toJson(tableType);
@@ -148,65 +172,29 @@ public abstract class AbstractQueryBuilder {
         return tableType;
     }
 
-    public JoinNode getJoinNode(Class entityClass, String fieldName, String alias) throws QueryBuilderException, SQLException {
+    public JoinNode getJoinNode(TableType tableType, String fieldName, String alias) throws QueryBuilderException, SQLException {
 
-        Field field = null;
-        try {
-            field = entityClass.getDeclaredField(fieldName);
-        } catch (NoSuchFieldException | SecurityException e) {
-            Logger.getGlobal().log(Level.SEVERE, e.getMessage(), e);
-        }
-
-        if (field == null) {
-            throw new QueryBuilderException("No se encuentra el campo " + fieldName + " de la clase " + entityClass);
-        }
-
-        /*ManyToOne m2o = field.getAnnotation(ManyToOne.class);
-        if(m2o == null){
-            throw new QueryBuilderException(" JOIN soportado solo para ManyToOne ");
-        }*/
+        ManyToOneType m2ot = tableType.getManyToOneType(fieldName);
+        TableType t = getTableType(m2ot.getFieldClass());
         
-        JoinColumn jcann = field.getAnnotation(JoinColumn.class);
-        JoinColumns jcanns = field.getAnnotation(JoinColumns.class);
-
-        List<JoinColumn> list = null;
-        if (jcann != null) {
-            list = new ArrayList();
-            list.add(jcann);
-        }
-
-        if (jcanns != null) {
-            list = Arrays.asList(jcanns.value());
-        }
-
-        if (list == null || list.isEmpty()) {
-            throw new QueryBuilderException("No se encuentra la anotacion @JoinColumn o @JoinColumns en el campo " + fieldName + " de la clase " + entityClass);
-        }
-
-        Class fieldClass = field.getType();
-        TableType tt = getTableType(fieldClass);
-
-        
-        List<ColumnType> selects = tt.getColumns();
+        List<ColumnType> selects = t.getColumns();
         List<SelectColumnType> selectColumns = selects.stream().map(e -> {
             SelectColumnType sct = new SelectColumnType(String.format("%s_%s", alias, e.getColumnName()), e);
             return sct;
         }).collect(Collectors.toList());
 
-        JoinNode node = new JoinNode();
-        node.setJoiners(list);
-        node.setFieldName(fieldName);
-        node.setTableType(tt);
-        node.setAlias(alias);
+        
+        JoinNode node = new JoinNode(alias, m2ot);
+        node.setTableType(t);
         node.setSelectColumns(selectColumns);
 
         return node;
 
     }
 
-    public void joins(String[] path, String alias, List<JoinNode> joins, Class theClass, Query.JOINTYPE joinType) throws QueryBuilderException, SQLException {
+    public void joins(String[] path, String alias, List<JoinNode> joins, TableType tableType, Query.JOINTYPE joinType) throws QueryBuilderException, SQLException {
 
-        String root = path[0];
+        String entityFieldName = path[0];
 
         String nodeAlias;
         Query.JOINTYPE nodeJointype;
@@ -215,15 +203,14 @@ public abstract class AbstractQueryBuilder {
             nodeAlias = alias;
             nodeJointype = joinType;
         } else {
-            nodeAlias = "_" + root;
+            nodeAlias = "_" + entityFieldName;
             nodeJointype = Query.JOINTYPE.INNER;
         }
 
-        Predicate<JoinNode> p = n -> Objects.equals(n.getFieldName(), root);
+        Predicate<JoinNode> p = n -> Objects.equals(n.getFieldName(), entityFieldName);
         JoinNode node = joins.stream().filter(p).findAny().orElse(null);
         if (node == null) {
-            node = getJoinNode(theClass, root, nodeAlias);
-            // node.setAlias(nodeAlias);
+            node = getJoinNode(tableType, entityFieldName, nodeAlias);
             node.setJoinType(nodeJointype);
             joins.add(node);
         }
@@ -233,6 +220,6 @@ public abstract class AbstractQueryBuilder {
         }
 
         String[] sub = Arrays.copyOfRange(path, 1, path.length);
-        joins(sub, alias, node.getChildren(), node.getTableType().getEntityClass(), joinType);
+        joins(sub, alias, node.getChildren(), node.getTableType(), joinType);
     }
 }

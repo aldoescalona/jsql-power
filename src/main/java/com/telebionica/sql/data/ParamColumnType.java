@@ -5,6 +5,7 @@
  */
 package com.telebionica.sql.data;
 
+import com.telebionica.sql.query.QueryBuilderException;
 import com.telebionica.sql.type.ColumnType;
 
 /**
@@ -12,32 +13,21 @@ import com.telebionica.sql.type.ColumnType;
  * @author aldo
  */
 public class ParamColumnType {
-    
+
     private Object value;
-    private String sql;
     private ColumnType columnType;
 
-
-    public ParamColumnType(Object value, String sql, ColumnType columnType) {
+    public ParamColumnType(Object value, ColumnType columnType) {
         this.value = value;
-        this.sql = sql;
         this.columnType = columnType;
     }
-    
+
     public Object getValue() {
         return value;
     }
 
     public void setValue(Object value) {
         this.value = value;
-    }
-
-    public String getSql() {
-        return sql;
-    }
-
-    public void setSql(String sql) {
-        this.sql = sql;
     }
 
     public ColumnType getColumnType() {
@@ -47,5 +37,11 @@ public class ParamColumnType {
     public void setColumnType(ColumnType columnType) {
         this.columnType = columnType;
     }
+
+    public boolean getter(Object obj) throws QueryBuilderException {
+        value = columnType.getter(obj);
+        return true;
+    }
+
     
 }

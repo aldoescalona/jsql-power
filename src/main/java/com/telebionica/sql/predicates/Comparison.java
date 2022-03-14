@@ -53,7 +53,7 @@ public class Comparison extends Predicate {
         if(aliasColumnType == null){
           aliasColumnType = getQuery().getAliasColumnType(fieldName);  throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
-        types.add(new ParamColumnType(value, aliasColumnType.getFullColumnName(), aliasColumnType.getColumnType()));
+        types.add(new ParamColumnType(value, aliasColumnType.getColumnType()));
     }
     
     public static enum COMPARISON_OPERATOR{

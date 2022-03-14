@@ -7,10 +7,6 @@ package com.telebionica.sql.data;
 
 import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.util.JDBCUtil;
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.sql.ResultSet;
@@ -46,12 +42,12 @@ public class SelectColumnType {
     public void setColumnType(ColumnType columnType) {
         this.columnType = columnType;
     }
-
+    
     public boolean push(Object target, ResultSet rs) throws Exception {
 
         Object any = null;
         
-        Method m = getWriteMethod(target.getClass(), columnType.getFieldName());
+        Method m = columnType.getWriteMethod();
         if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
             Long obj = JDBCUtil.getLong(rs, queryKey);
             m.invoke(target, obj);
@@ -81,14 +77,5 @@ public class SelectColumnType {
         return any != null;
     }
 
-    public Method getWriteMethod(Class clazz, String propertyName) throws IntrospectionException {
-        BeanInfo beanInfo = Introspector.getBeanInfo(clazz);
-        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-        for (PropertyDescriptor pd : propertyDescriptors) {
-            if (pd.getName().equalsIgnoreCase(propertyName)) {
-                return pd.getWriteMethod();
-            }
-        }
-        return null;
-    }
+    
 }

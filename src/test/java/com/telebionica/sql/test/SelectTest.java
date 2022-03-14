@@ -66,7 +66,7 @@ public class SelectTest {
                     select().
                     from(Factura.class, "f").
                     left("facturaSustitucion", "fs").
-                    join("emisorFactura", "ef1").
+                    left("emisorFactura", "ef1").
                     left("facturaSustitucion.emisorFactura", "ef2").
                     where(Predicates.eq("f.folioSat", "E52BEAA6-D1E3-4BE3-82FD-304A3A12BA37")).
                     // and(or).

@@ -5,6 +5,7 @@
  */
 package com.telebionica.sql.test;
 
+import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.query.Query;
 import java.math.BigDecimal;
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class InsertPowerTest {
+public class InsertItemPowerTest {
     
      @Test
     public void test() {
@@ -43,7 +44,12 @@ public class InsertPowerTest {
             p.setDatoBoolean(Boolean.TRUE);
             p.setDatoDouble(5.309d);
             
-            query.schema("RST0").insert(p);
+            ItemPrueba item = new ItemPrueba();
+            item.setId(1L);
+            item.setDescripcion("Lorem ipsum dolor sit amet");
+            item.setPruebaId(p);
+            
+            query.schema("RST0").insert(item);
             
             
         } catch (Exception e) {
