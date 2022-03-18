@@ -180,13 +180,13 @@ public abstract class AbstractQueryBuilder {
         List<ColumnType> selects = t.getColumns();
         List<PowerColumnType> selectColumns = selects.stream().map(e -> {
             PowerColumnType sct = new PowerColumnType(e);
-            sct.setSelectKey(String.format("%s_%s", alias, e.getColumnName()));
+            sct.setColumnAlias(String.format("%s_%s", alias, e.getColumnName()));
             return sct;
         }).collect(Collectors.toList());
 
         
         JoinNode node = new JoinNode(alias, m2ot);
-        node.setTableType(t);
+        node.setChildTableType(t);
         node.setSelectColumns(selectColumns);
 
         return node;
@@ -221,6 +221,6 @@ public abstract class AbstractQueryBuilder {
         }
 
         String[] sub = Arrays.copyOfRange(path, 1, path.length);
-        joins(sub, alias, node.getChildren(), node.getTableType(), joinType);
+        joins(sub, alias, node.getChildren(), node.getChildTableType(), joinType);
     }
 }

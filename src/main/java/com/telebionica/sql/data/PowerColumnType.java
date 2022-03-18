@@ -15,7 +15,9 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 
 /**
@@ -26,9 +28,9 @@ public class PowerColumnType {
 
     private ColumnType columnType;
     private Object value;
-    private String alias;
-    private String selectKey;
-    
+    private String tableAlias;
+    private String columnAlias;
+
     public PowerColumnType(ColumnType columnType) {
         this.columnType = columnType;
     }
@@ -37,7 +39,7 @@ public class PowerColumnType {
         this.columnType = columnType;
         this.value = value;
     }
-    
+
     public Object getValue() {
         return value;
     }
@@ -54,63 +56,86 @@ public class PowerColumnType {
         this.columnType = columnType;
     }
 
-    public String getAlias() {
-        return alias;
+    public String getTableAlias() {
+        return tableAlias;
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
+    public void setTableAlias(String tableAlias) {
+        this.tableAlias = tableAlias;
     }
 
-    public String getSelectKey() {
-        return selectKey;
+    public String getColumnAlias() {
+        return columnAlias;
     }
 
-    public void setSelectKey(String selectKey) {
-        this.selectKey = selectKey;
+    public void setColumnAlias(String columnAlias) {
+        this.columnAlias = columnAlias;
     }
 
     public String getFullColumnName() {
-        if (alias == null) {
+        if (tableAlias == null) {
             return columnType.getColumnName();
         } else {
-            return String.format("%s.%s", alias, columnType.getColumnName());
+            return String.format("%s.%s", tableAlias, columnType.getColumnName());
         }
     }
 
-    public boolean push(Object target, ResultSet rs) throws Exception {
+    public void powerStatement(PreparedStatement pstm, int i) throws SQLException {
+        if (columnType.getScale() == null) {
+            pstm.setObject(i++, value, columnType.getType());
+        } else {
+            pstm.setObject(i++, value, columnType.getType(), columnType.getScale());
+        }
+    }
+
+    public boolean push(Object target, ResultSet rs) throws QueryBuilderException, SQLException {
 
         Object any = null;
-        
-        Method m = getWriteMethod();
-        if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
-            Long obj = JDBCUtil.getLong(rs, selectKey);
-            m.invoke(target, obj);
-            any = obj;
-        } else if(columnType.getFieldClass().isAssignableFrom(Integer.class)){
-            Integer obj = JDBCUtil.getInteger(rs, selectKey);
-            m.invoke(target, obj);
-            any = obj;
-        } else if(columnType.getFieldClass().isAssignableFrom(Boolean.class)){
-            Boolean obj = JDBCUtil.getBoolean(rs, selectKey);
-            m.invoke(target, obj);
-            any = obj;
-        } else if(columnType.getFieldClass().isAssignableFrom(String.class)){
-            String obj = rs.getString(selectKey);
-            m.invoke(target, obj);
-            any = obj;
-        } else if(columnType.getFieldClass().isAssignableFrom(BigDecimal.class)){
-            BigDecimal obj = rs.getBigDecimal(selectKey);
-            m.invoke(target, obj);
-            any = obj;
-        } else if(columnType.getFieldClass().isAssignableFrom(Date.class)){
-            Date obj = rs.getTimestamp(selectKey);
-            m.invoke(target, obj);
-            any = obj;
+        try {
+            Method m = getWriteMethod();
+            if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
+                Long obj = JDBCUtil.getLong(rs, columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Integer.class)) {
+                Integer obj = JDBCUtil.getInteger(rs, columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Float.class)) {
+                Float obj = JDBCUtil.getFloat(rs, columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Double.class)) {
+                Double obj = JDBCUtil.getDouble(rs, columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Boolean.class)) {
+                Boolean obj = JDBCUtil.getBoolean(rs, columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(String.class)) {
+                String obj = rs.getString(columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(BigDecimal.class)) {
+                BigDecimal obj = rs.getBigDecimal(columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Date.class)) {
+                Date obj = rs.getTimestamp(columnAlias);
+                m.invoke(target, obj);
+                any = obj;
+            } else {
+                throw new QueryBuilderException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
+            }
+
+        } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            throw new QueryBuilderException(e);
         }
+
         return any != null;
     }
-    
+
     public Method getWriteMethod() throws IntrospectionException {
         BeanInfo beanInfo = Introspector.getBeanInfo(columnType.getTableType().getEntityClass());
         PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
@@ -132,7 +157,7 @@ public class PowerColumnType {
         }
         return null;
     }
-    
+
     public void getter(Object obj) throws QueryBuilderException {
         try {
             Method m = getReadMethod();

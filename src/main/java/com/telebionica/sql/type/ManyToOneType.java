@@ -5,12 +5,17 @@
  */
 package com.telebionica.sql.type;
 
+import com.telebionica.sql.query.JoinNode;
+import com.telebionica.sql.query.QueryBuilderException;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.persistence.JoinColumn;
 
 /**
@@ -55,10 +60,35 @@ public class ManyToOneType {
     public void setJoiners(List<JoinColumn> joiners) {
         this.joiners = joiners;
     }
+
+    public TableType getTableType() {
+        return tableType;
+    }
+
+    public void setTableType(TableType tableType) {
+        this.tableType = tableType;
+    }
     
-    public void setter(Object obj, Object child) throws Exception{
-        Method m =  getWriteMethod();
-        m.invoke(obj, child);
+    public Object getter(Object b) throws QueryBuilderException {
+        Object obj = null;
+        try {
+            Method m = getReadMethod();
+            obj = m.invoke(b);
+        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException | IntrospectionException ex) {
+            Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
+            throw new QueryBuilderException(ex);
+        }
+        return obj;
+    }
+    
+    public void setter(Object obj, Object child) throws QueryBuilderException {
+        try {
+            Method m = getWriteMethod();
+            m.invoke(obj, child);
+        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException | IntrospectionException ex) {
+            Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
+            throw new QueryBuilderException(ex);
+        }
     }
     
     public Method getWriteMethod() throws IntrospectionException {

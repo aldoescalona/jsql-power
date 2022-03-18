@@ -48,17 +48,11 @@ public class SelectTest {
 
         System.out.println(" PROBANDO PROBANDO");
 
-        /*Field[] fields = Types.class.getDeclaredFields();
-        
-        for(Field f:fields){
-            System.out.println(" " + f.getName());
-        }*/
         try {
 
             QueryBuilder queryBuilder = new QueryBuilder();
             queryBuilder.setMetadaSchema("RSTX");
             Query<Factura> query = queryBuilder.createQuery();
-            // query.schema("RST0").from().left("facturaSustitucion", "fs").left("facturaSustitucion.emisorFactura", "ef");
 
             Junction or = Predicates.or(Predicates.compare("f.estado", Comparison.COMPARISON_OPERATOR.EQ_SAFENULL, 2), Predicates.isNUll("f.uuid"));
 

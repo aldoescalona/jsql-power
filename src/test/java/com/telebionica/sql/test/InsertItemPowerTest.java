@@ -29,7 +29,7 @@ public class InsertItemPowerTest {
             Query<Prueba> query = queryBuilder.createQuery();
 
             Prueba p = new Prueba();
-            p.setId(2L);
+            p.setId(1L);
             p.setDatoIntA(2);
             p.setDatoChar("CHAR$%##");
             p.setDatoIntB(3);
@@ -45,7 +45,7 @@ public class InsertItemPowerTest {
             p.setDatoDouble(5.309d);
             
             ItemPrueba item = new ItemPrueba();
-            item.setId(1L);
+            item.setId(2L);
             item.setDescripcion("Lorem ipsum dolor sit amet");
             item.setPruebaId(p);
             

@@ -30,25 +30,25 @@ import javax.persistence.JoinColumn;
  */
 public class Query<E> {
 
+    private final AbstractQueryBuilder queryBuilder;
     private String schema;
     private String rootAlias;
     private TableType tableType;
-    private AbstractQueryBuilder queryBuilder;
+
     private String[] selectFieldNames;
     private String[] deleteAliases;
+
     private Class<E> entityClass;
 
-    private List<JoinNode> rootJoinNodes = new ArrayList();
-    private List<Order> orders = new ArrayList();
+    private List<JoinNode> rootJoinNodes;
+    private List<Order> orders;
 
     private Integer firstResult;
     private Integer maxResults;
 
     private QTYPE qtype;
 
-    private List<PowerColumnType> params = new ArrayList<PowerColumnType>();
-    private List<Predicate> predicates = new ArrayList();
-    private List<PowerColumnType> selecTColumns = new ArrayList();
+    private List<Predicate> predicates;
 
     public Query(AbstractQueryBuilder queryBuilder) throws SQLException, QueryBuilderException {
         this.queryBuilder = queryBuilder;
@@ -70,9 +70,23 @@ public class Query<E> {
     }
 
     public Query<E> from(Class<E> entityClass, String alias) throws SQLException, QueryBuilderException {
+
+        if (qtype == null) {
+            throw new QueryBuilderException("No se ha establecido el qtype, use previamente select() o delete(String ...aliases)");
+        }
+
+        if (alias == null) {
+            throw new QueryBuilderException("Alias no puede ser nulo en from(Class entityClass, String alias)");
+        }
+
         this.rootAlias = alias;
         this.entityClass = entityClass;
-        tableType = queryBuilder.getTableType(entityClass);
+        this.tableType = queryBuilder.getTableType(entityClass);
+
+        this.rootJoinNodes = new ArrayList();
+        this.orders = new ArrayList();
+        this.predicates = new ArrayList();
+
         return this;
     }
 
@@ -88,14 +102,22 @@ public class Query<E> {
         return join(field, alias, JOINTYPE.RIGHT);
     }
 
-    public Query<E> join(String fieldPath, String alias, JOINTYPE joinYype) throws QueryBuilderException, SQLException {
+    public Query<E> join(String fieldPath, String alias, JOINTYPE jointype) throws QueryBuilderException, SQLException {
+
+        if (rootAlias == null) {
+            throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
+        }
+
+        if (jointype == null) {
+            throw new QueryBuilderException("Jointype no puede ser nulo");
+        }
 
         String[] path = fieldPath.split("[.]");
         if (path.length <= 0) {
-            return this;
-            // throw new QueryBuilderException("No se encuentra el path " + fieldPath);
+            // return this;
+            throw new QueryBuilderException("No se encuentra el path " + fieldPath);
         }
-        queryBuilder.joins(path, alias, rootJoinNodes, tableType, joinYype);
+        queryBuilder.joins(path, alias, rootJoinNodes, tableType, jointype);
 
         Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
         String json = gson.toJson(rootJoinNodes);
@@ -126,73 +148,79 @@ public class Query<E> {
 
         this.entityClass = (Class<E>) e.getClass();
         tableType = queryBuilder.getTableType(entityClass);
-        
-        
+
         List<ColumnType> cols = tableType.getColumns();
-        
+
         List<PowerColumnType> insertParams = new ArrayList();
-        for(ColumnType ct:cols){
+        for (ColumnType ct : cols) {
             PowerColumnType param = new PowerColumnType(ct);
+            param.setColumnAlias(ct.getColumnName());
             param.getter(e);
             insertParams.add(param);
+        }
+        
+        List<ManyToOneType> m2otList = tableType.getManyToOnes();
+        for (ManyToOneType m2o : m2otList) {
+
+            Object obj = m2o.getter(e);
+            
+            if(obj == null){
+                continue;
+            }
+            
+            TableType otherTT = queryBuilder.getTableType(m2o.getFieldClass());
+            
+            List<JoinColumn> jcs = m2o.getJoiners();
+            for (JoinColumn jc : jcs) {
+                String columName = jc.referencedColumnName();
+                ColumnType ct = otherTT.getColumnType(columName);
+
+                PowerColumnType param = new PowerColumnType(ct);
+                param.setColumnAlias(jc.name());
+                param.getter(obj);
+                insertParams.add(param);
+            }
         }
 
         StringBuilder sb = new StringBuilder();
         StringBuilder sbvalues = new StringBuilder();
         sb.append("INSERT INTO ");
-        
+
         if (schema != null) {
             sb.append(schema).append(".");
         }
-        
+
         sb.append(tableType.getName());
-        
         sb.append(" (");
         
-        
-        List<ManyToOneType> m2otList = tableType.getManyToOnes();
-        
-        for(ManyToOneType m2o:m2otList){
-            TableType otherTT = queryBuilder.getTableType(m2o.getFieldClass());
-            List<JoinColumn> jcs = m2o.getJoiners();
-            
-            for(JoinColumn jc:jcs){
-                String name = jc.name();
-                otherTT.getFieldColumnType(name);
-            }
-        }
-        
-        
+
         Iterator<PowerColumnType> colIt = insertParams.iterator();
-        while(colIt.hasNext()){
+        while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
+            sb.append(ct.getColumnAlias());
             sbvalues.append("?");
-            
-            if(colIt.hasNext()){
+
+            if (colIt.hasNext()) {
                 sb.append(", ");
                 sbvalues.append(", ");
             }
         }
-        
+
         sb.append(" ) VALUES(");
         sb.append(sbvalues);
         sb.append(")");
-        
+
         String query = sb.toString();
-        
+
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
-            
+
             int i = 1;
-            for(PowerColumnType val:insertParams){
-                if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
-                } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
-                }
+            for (PowerColumnType powerValue : insertParams) {
+                powerValue.powerStatement(pstm, i++);
             }
             pstm.executeUpdate();
         }
-        
+
         System.out.println(" INSERT " + sb);
 
         return 0;
@@ -216,22 +244,20 @@ public class Query<E> {
     public List<E> list() throws Exception {
         List<E> list = new ArrayList();
 
-        String query = dryRun(false);
+        ParametrizedQuery pq = dryRun(false);
+        String query = pq.getQuery();
+
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
-            for (PowerColumnType val : params) {
-                if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
-                } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
-                }
+            for (PowerColumnType powerValue : pq.getParams()) {
+                powerValue.powerStatement(pstm, i++);
             }
 
             try ( ResultSet rs = pstm.executeQuery()) {
                 while (rs.next()) {
                     E rootInstance = entityClass.getConstructor().newInstance();
-                    for (PowerColumnType st : selecTColumns) {
+                    for (PowerColumnType st : pq.getSelectColumns()) {
                         st.push(rootInstance, rs);
                     }
                     push(rootInstance, rootJoinNodes, rs);
@@ -250,16 +276,13 @@ public class Query<E> {
 
         int c = 0;
 
-        String query = dryRun(true);
+        ParametrizedQuery pq = dryRun(false);
+        String query = pq.getQuery();
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
-            for (PowerColumnType val : params) {
-                if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
-                } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
-                }
+            for (PowerColumnType powerValue : pq.getParams()) {
+                powerValue.powerStatement(pstm, i++);
             }
 
             try ( ResultSet rs = pstm.executeQuery()) {
@@ -275,39 +298,33 @@ public class Query<E> {
     public int execute() throws Exception {
 
         int c;
-        String query = dryRun(false);
+        ParametrizedQuery pq = dryRun(false);
+        String query = pq.getQuery();
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
-            for (PowerColumnType val : params) {
-
-                if (val.getColumnType().getScale() == null) {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
-                } else {
-                    pstm.setObject(i++, val.getValue(), val.getColumnType().getType(), val.getColumnType().getScale());
-                }
+            for (PowerColumnType powerValue : pq.getParams()) {
+                powerValue.powerStatement(pstm, i++);
             }
-
             c = pstm.executeUpdate();
-
         }
-        
+
         return c;
     }
 
-    private void push(Object parent, List<JoinNode> nodes, ResultSet rs) throws Exception {
+    private void push(Object parent, List<JoinNode> nodes, ResultSet rs) throws QueryBuilderException, SQLException {
 
         for (JoinNode node : nodes) {
 
-            boolean existe = false;
+            boolean any = false;
             List<PowerColumnType> cols = node.getSelectColumns();
-            Object instance = node.getTableType().getEntityClass().getConstructor().newInstance();
+            Object child = node.newChild();
             for (PowerColumnType st : cols) {
-                existe = existe || st.push(instance, rs);
+                any = any || st.push(child, rs);
             }
-            if (existe) {
-                node.getManyToOneType().setter(parent, instance);
-                push(instance, node.getChildren(), rs);
+            if (any) {
+                node.setter(parent, child);
+                push(child, node.getChildren(), rs);
             }
         }
 
@@ -317,7 +334,9 @@ public class Query<E> {
         return (E) new Object();
     }
 
-    private void selectColumnsIndexar() {
+    private List<PowerColumnType> selectIndexator() {
+
+        List<PowerColumnType> selectColumns = new ArrayList();
 
         if (qtype == QTYPE.SELECT) {
 
@@ -335,20 +354,23 @@ public class Query<E> {
                 selects.addAll(cols);
             }
 
-            selecTColumns = selects.stream().map(e -> {
+            selectColumns = selects.stream().map(e -> {
                 PowerColumnType sct = new PowerColumnType(e);
-                sct.setSelectKey(String.format("%s_%s", rootAlias, e.getColumnName()));
+                sct.setColumnAlias(String.format("%s_%s", rootAlias, e.getColumnName()));
                 return sct;
             }).collect(Collectors.toList());
         }
+
+        return selectColumns;
     }
 
-    public String dryRun(boolean count) throws SQLException, QueryBuilderException {
+    public ParametrizedQuery dryRun(boolean count) throws SQLException, QueryBuilderException {
 
-        params.clear();
+        List<PowerColumnType> params = new ArrayList();
+        List<PowerColumnType> selectColumns = null;
 
         if (tableType == null) {
-            return "";
+            throw new QueryBuilderException("No esta definida la tabla en donde construir el query");
         }
 
         StringBuilder sb = new StringBuilder();
@@ -357,15 +379,15 @@ public class Query<E> {
             sb.append("SELECT ");
             if (!count) {
 
-                selectColumnsIndexar();
+                selectColumns = selectIndexator();
 
-                Iterator<PowerColumnType> selectIt = selecTColumns.iterator();
+                Iterator<PowerColumnType> selectIt = selectColumns.iterator();
                 while (selectIt.hasNext()) {
                     PowerColumnType selColumnType = selectIt.next();
 
                     sb.append(rootAlias).append(".");
                     sb.append(selColumnType.getColumnType().getColumnName());
-                    sb.append(" as ").append(selColumnType.getSelectKey());
+                    sb.append(" as ").append(selColumnType.getColumnAlias());
 
                     if (selectIt.hasNext()) {
                         sb.append(", ");
@@ -427,8 +449,6 @@ public class Query<E> {
             }
         }
 
-        System.out.println(" VALUES: " + params);
-
         if (qtype == QTYPE.SELECT && !count) {
 
             if (orders.size() > 0) {
@@ -444,13 +464,17 @@ public class Query<E> {
                     }
                 }
             }
-
-            sb.append(limit());
         }
 
-        System.out.println(" QUERY: " + sb.toString());
+        String query = sb.toString();
+        if (qtype == QTYPE.SELECT && !count) {
+            query = limit(query);
+        }
 
-        return sb.toString();
+        System.out.println(" QUERY: " + query);
+
+        ParametrizedQuery pq = new ParametrizedQuery(query, params, selectColumns);
+        return pq;
     }
 
     private String selectJoins(List<JoinNode> nodes) {
@@ -470,7 +494,7 @@ public class Query<E> {
 
                 sb.append(node.getAlias()).append(".");
                 sb.append(selColumnType.getColumnType().getColumnName());
-                sb.append(" as ").append(selColumnType.getSelectKey());
+                sb.append(" as ").append(selColumnType.getColumnAlias());
 
                 if (selectIt.hasNext()) {
                     sb.append(", ");
@@ -497,7 +521,7 @@ public class Query<E> {
                 sb.append(schema).append(".");
             }
 
-            sb.append(node.getTableType().getName()).append(" ");
+            sb.append(node.getChildTableType().getName()).append(" ");
             sb.append(node.getAlias()).append(" ON ");
 
             List<JoinColumn> cols = node.getJoiners();
@@ -520,20 +544,20 @@ public class Query<E> {
         return sb.toString();
     }
 
-    private String limit() {
+    private String limit(String query) {
 
         if (qtype == QTYPE.SELECT) {
 
             if (firstResult == null && maxResults == null) {
-                return "";
+                return query;
             }
 
             if (firstResult == null && maxResults != null) {
-                return String.format("\nLIMIT %d", maxResults);
+                return String.format("%s\nLIMIT %d", query, maxResults);
             }
 
             if (firstResult != null && maxResults != null) {
-                return String.format("\nLIMIT %d, %d", firstResult, maxResults);
+                return String.format("%s\nLIMIT %d, %d", query, firstResult, maxResults);
             }
         }
 
@@ -557,7 +581,6 @@ public class Query<E> {
         this.maxResults = maxResults;
         return this;
     }
-    
 
     public PowerColumnType getAliasColumnType(String fieldPath) {
         String[] path = fieldPath.split("[.]");
@@ -585,7 +608,7 @@ public class Query<E> {
                 return null;
             }
             PowerColumnType ext = new PowerColumnType(ct);
-            ext.setAlias(alias);
+            ext.setTableAlias(alias);
             return ext;
         }
 
@@ -595,7 +618,7 @@ public class Query<E> {
         }
 
         PowerColumnType ext = new PowerColumnType(ct);
-        ext.setAlias(alias);
+        ext.setTableAlias(alias);
         return ext;
     }
 
@@ -605,7 +628,7 @@ public class Query<E> {
 
         for (JoinNode node : nodes) {
             if (node.getAlias().equals(alias)) {
-                ct = node.getTableType().getFieldColumnType(field);
+                ct = node.getChildTableType().getFieldColumnType(field);
                 return ct;
             }
             if (node.getChildren().size() > 0) {
