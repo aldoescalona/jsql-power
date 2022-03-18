@@ -57,7 +57,7 @@ public class SelectTest {
             Junction or = Predicates.or(Predicates.compare("f.estado", Comparison.COMPARISON_OPERATOR.EQ_SAFENULL, 2), Predicates.isNUll("f.uuid"));
 
             query.schema("RST0").
-                    select().
+                    select("folioSat").
                     from(Factura.class, "f").
                     left("facturaSustitucion", "fs").
                     left("emisorFactura", "ef1").

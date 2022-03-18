@@ -97,19 +97,19 @@ public class PowerColumnType {
                 Long obj = JDBCUtil.getLong(rs, columnAlias);
                 m.invoke(target, obj);
                 any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Integer.class)) {
+            } else if (columnType.getFieldClass().isAssignableFrom(Integer.class) ||  columnType.getFieldClass().isAssignableFrom(int.class)) {
                 Integer obj = JDBCUtil.getInteger(rs, columnAlias);
                 m.invoke(target, obj);
                 any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Float.class)) {
+            } else if (columnType.getFieldClass().isAssignableFrom(Float.class) ||  columnType.getFieldClass().isAssignableFrom(float.class)) {
                 Float obj = JDBCUtil.getFloat(rs, columnAlias);
                 m.invoke(target, obj);
                 any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Double.class)) {
+            } else if (columnType.getFieldClass().isAssignableFrom(Double.class) ||  columnType.getFieldClass().isAssignableFrom(double.class)) {
                 Double obj = JDBCUtil.getDouble(rs, columnAlias);
                 m.invoke(target, obj);
                 any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Boolean.class)) {
+            } else if (columnType.getFieldClass().isAssignableFrom(Boolean.class) ||  columnType.getFieldClass().isAssignableFrom(boolean.class)) {
                 Boolean obj = JDBCUtil.getBoolean(rs, columnAlias);
                 m.invoke(target, obj);
                 any = obj;
