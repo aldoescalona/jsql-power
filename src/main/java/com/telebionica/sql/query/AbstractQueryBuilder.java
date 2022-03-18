@@ -7,7 +7,7 @@ package com.telebionica.sql.query;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.telebionica.sql.data.SelectColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import javax.persistence.Column;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
@@ -178,8 +178,9 @@ public abstract class AbstractQueryBuilder {
         TableType t = getTableType(m2ot.getFieldClass());
         
         List<ColumnType> selects = t.getColumns();
-        List<SelectColumnType> selectColumns = selects.stream().map(e -> {
-            SelectColumnType sct = new SelectColumnType(String.format("%s_%s", alias, e.getColumnName()), e);
+        List<PowerColumnType> selectColumns = selects.stream().map(e -> {
+            PowerColumnType sct = new PowerColumnType(e);
+            sct.setSelectKey(String.format("%s_%s", alias, e.getColumnName()));
             return sct;
         }).collect(Collectors.toList());
 

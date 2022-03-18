@@ -14,6 +14,4 @@ public class Asc extends Order{
     public Asc(String colname) {
         super(colname, "ASC");
     }
-    
-    
 }

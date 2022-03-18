@@ -7,12 +7,10 @@ package com.telebionica.sql.query;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.telebionica.sql.data.AliasColumnType;
 import com.telebionica.sql.order.Order;
 import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.type.TableType;
-import com.telebionica.sql.data.ParamColumnType;
-import com.telebionica.sql.data.SelectColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.type.ManyToOneType;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
@@ -48,9 +46,9 @@ public class Query<E> {
 
     private QTYPE qtype;
 
-    private List<ParamColumnType> params = new ArrayList<ParamColumnType>();
+    private List<PowerColumnType> params = new ArrayList<PowerColumnType>();
     private List<Predicate> predicates = new ArrayList();
-    private List<SelectColumnType> selecTColumns = new ArrayList();
+    private List<PowerColumnType> selecTColumns = new ArrayList();
 
     public Query(AbstractQueryBuilder queryBuilder) throws SQLException, QueryBuilderException {
         this.queryBuilder = queryBuilder;
@@ -132,9 +130,9 @@ public class Query<E> {
         
         List<ColumnType> cols = tableType.getColumns();
         
-        List<ParamColumnType> insertParams = new ArrayList();
+        List<PowerColumnType> insertParams = new ArrayList();
         for(ColumnType ct:cols){
-            ParamColumnType param = new ParamColumnType(null, ct);
+            PowerColumnType param = new PowerColumnType(ct);
             param.getter(e);
             insertParams.add(param);
         }
@@ -155,10 +153,7 @@ public class Query<E> {
         List<ManyToOneType> m2otList = tableType.getManyToOnes();
         
         for(ManyToOneType m2o:m2otList){
-            
-            
             TableType otherTT = queryBuilder.getTableType(m2o.getFieldClass());
-            System.out.println(" " + otherTT);
             List<JoinColumn> jcs = m2o.getJoiners();
             
             for(JoinColumn jc:jcs){
@@ -168,9 +163,9 @@ public class Query<E> {
         }
         
         
-        Iterator<ParamColumnType> colIt = insertParams.iterator();
+        Iterator<PowerColumnType> colIt = insertParams.iterator();
         while(colIt.hasNext()){
-            ParamColumnType ct = colIt.next();
+            PowerColumnType ct = colIt.next();
             sbvalues.append("?");
             
             if(colIt.hasNext()){
@@ -188,7 +183,7 @@ public class Query<E> {
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
             
             int i = 1;
-            for(ParamColumnType val:insertParams){
+            for(PowerColumnType val:insertParams){
                 if (val.getColumnType().getScale() == null) {
                     pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
                 } else {
@@ -225,7 +220,7 @@ public class Query<E> {
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
-            for (ParamColumnType val : params) {
+            for (PowerColumnType val : params) {
                 if (val.getColumnType().getScale() == null) {
                     pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
                 } else {
@@ -236,7 +231,7 @@ public class Query<E> {
             try ( ResultSet rs = pstm.executeQuery()) {
                 while (rs.next()) {
                     E rootInstance = entityClass.getConstructor().newInstance();
-                    for (SelectColumnType st : selecTColumns) {
+                    for (PowerColumnType st : selecTColumns) {
                         st.push(rootInstance, rs);
                     }
                     push(rootInstance, rootJoinNodes, rs);
@@ -259,7 +254,7 @@ public class Query<E> {
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
-            for (ParamColumnType val : params) {
+            for (PowerColumnType val : params) {
                 if (val.getColumnType().getScale() == null) {
                     pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
                 } else {
@@ -284,7 +279,7 @@ public class Query<E> {
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
-            for (ParamColumnType val : params) {
+            for (PowerColumnType val : params) {
 
                 if (val.getColumnType().getScale() == null) {
                     pstm.setObject(i++, val.getValue(), val.getColumnType().getType());
@@ -305,9 +300,9 @@ public class Query<E> {
         for (JoinNode node : nodes) {
 
             boolean existe = false;
-            List<SelectColumnType> cols = node.getSelectColumns();
+            List<PowerColumnType> cols = node.getSelectColumns();
             Object instance = node.getTableType().getEntityClass().getConstructor().newInstance();
-            for (SelectColumnType st : cols) {
+            for (PowerColumnType st : cols) {
                 existe = existe || st.push(instance, rs);
             }
             if (existe) {
@@ -341,7 +336,8 @@ public class Query<E> {
             }
 
             selecTColumns = selects.stream().map(e -> {
-                SelectColumnType sct = new SelectColumnType(String.format("%s_%s", rootAlias, e.getColumnName()), e);
+                PowerColumnType sct = new PowerColumnType(e);
+                sct.setSelectKey(String.format("%s_%s", rootAlias, e.getColumnName()));
                 return sct;
             }).collect(Collectors.toList());
         }
@@ -363,13 +359,13 @@ public class Query<E> {
 
                 selectColumnsIndexar();
 
-                Iterator<SelectColumnType> selectIt = selecTColumns.iterator();
+                Iterator<PowerColumnType> selectIt = selecTColumns.iterator();
                 while (selectIt.hasNext()) {
-                    SelectColumnType selColumnType = selectIt.next();
+                    PowerColumnType selColumnType = selectIt.next();
 
                     sb.append(rootAlias).append(".");
                     sb.append(selColumnType.getColumnType().getColumnName());
-                    sb.append(" as ").append(selColumnType.getQueryKey());
+                    sb.append(" as ").append(selColumnType.getSelectKey());
 
                     if (selectIt.hasNext()) {
                         sb.append(", ");
@@ -462,19 +458,19 @@ public class Query<E> {
 
         for (JoinNode node : nodes) {
 
-            List<SelectColumnType> cols = node.getSelectColumns();
+            List<PowerColumnType> cols = node.getSelectColumns();
 
             if (cols.size() > 0) {
                 sb.append(", \n");
             }
 
-            Iterator<SelectColumnType> selectIt = cols.iterator();
+            Iterator<PowerColumnType> selectIt = cols.iterator();
             while (selectIt.hasNext()) {
-                SelectColumnType selColumnType = selectIt.next();
+                PowerColumnType selColumnType = selectIt.next();
 
                 sb.append(node.getAlias()).append(".");
                 sb.append(selColumnType.getColumnType().getColumnName());
-                sb.append(" as ").append(selColumnType.getQueryKey());
+                sb.append(" as ").append(selColumnType.getSelectKey());
 
                 if (selectIt.hasNext()) {
                     sb.append(", ");
@@ -563,7 +559,7 @@ public class Query<E> {
     }
     
 
-    public AliasColumnType getAliasColumnType(String fieldPath) {
+    public PowerColumnType getAliasColumnType(String fieldPath) {
         String[] path = fieldPath.split("[.]");
         if (path.length <= 0) {
             return null;
@@ -575,7 +571,7 @@ public class Query<E> {
                 return null;
             }
 
-            AliasColumnType ext = new AliasColumnType(null, ct);
+            PowerColumnType ext = new PowerColumnType(ct);
             return ext;
 
         }
@@ -588,7 +584,8 @@ public class Query<E> {
             if (ct == null) {
                 return null;
             }
-            AliasColumnType ext = new AliasColumnType(alias, ct);
+            PowerColumnType ext = new PowerColumnType(ct);
+            ext.setAlias(alias);
             return ext;
         }
 
@@ -597,7 +594,8 @@ public class Query<E> {
             return null;
         }
 
-        AliasColumnType ext = new AliasColumnType(alias, ct);
+        PowerColumnType ext = new PowerColumnType(ct);
+        ext.setAlias(alias);
         return ext;
     }
 
@@ -636,7 +634,7 @@ public class Query<E> {
     }
 
     public static enum JOINTYPE {
-        INNER("INNER JOIN"), LEFT("LEFT OUTER JOIN"), RIGHT("RIGHT OUTER JOIN");
+        INNER("INNER JOIN"), LEFT("LEFT JOIN"), RIGHT("RIGHT JOIN");
 
         private JOINTYPE(String statementJoin) {
             this.statementJoin = statementJoin;
@@ -646,7 +644,7 @@ public class Query<E> {
             return statementJoin;
         }
 
-        private String statementJoin;
+        private final String statementJoin;
     }
 
 }

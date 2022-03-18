@@ -5,9 +5,8 @@
  */
 package com.telebionica.sql.predicates;
 
-import com.telebionica.sql.data.AliasColumnType;
 import com.telebionica.sql.query.Predicate;
-import com.telebionica.sql.data.ParamColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.QueryBuilderException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,11 +18,11 @@ import java.util.List;
 public class Comparison extends Predicate {
 
     private String fieldName;
-    private AliasColumnType aliasColumnType;
+    private PowerColumnType aliasColumnType;
     
     private COMPARISON_OPERATOR operator;
     private Object value;
-    private List<ParamColumnType> types = new ArrayList<ParamColumnType>();
+    private List<PowerColumnType> types = new ArrayList<PowerColumnType>();
 
     public Comparison(String fieldName, COMPARISON_OPERATOR operator, Object value) {
         this.fieldName = fieldName;
@@ -42,7 +41,7 @@ public class Comparison extends Predicate {
     }
     
     @Override
-    public List<ParamColumnType> getValueTypes() {
+    public List<PowerColumnType> getValueTypes() {
         return types;
     }
 
@@ -51,9 +50,10 @@ public class Comparison extends Predicate {
         types.clear();
         aliasColumnType = getQuery().getAliasColumnType(fieldName);
         if(aliasColumnType == null){
-          aliasColumnType = getQuery().getAliasColumnType(fieldName);  throw new QueryBuilderException("No existe el atributo " + fieldName);
+          throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
-        types.add(new ParamColumnType(value, aliasColumnType.getColumnType()));
+        aliasColumnType.setValue(value);
+        types.add(aliasColumnType);
     }
     
     public static enum COMPARISON_OPERATOR{
@@ -74,7 +74,7 @@ public class Comparison extends Predicate {
             return operator;
         }
         
-        private String operator;
+        private final String operator;
     }
     
 }

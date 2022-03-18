@@ -5,14 +5,9 @@
  */
 package com.telebionica.sql.query;
 
-import com.telebionica.sql.data.SelectColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.type.ManyToOneType;
 import com.telebionica.sql.type.TableType;
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.JoinColumn;
@@ -26,7 +21,7 @@ public class JoinNode {
     private String alias;
     private ManyToOneType manyToOneType;
     private TableType tableType;
-    private List<SelectColumnType> selectColumns = new ArrayList();
+    private List<PowerColumnType> selectColumns = new ArrayList();
     private Query.JOINTYPE joinType;
     private List<JoinNode> children = new ArrayList<>();
 
@@ -76,11 +71,11 @@ public class JoinNode {
         this.children = children;
     }
 
-    public List<SelectColumnType> getSelectColumns() {
+    public List<PowerColumnType> getSelectColumns() {
         return selectColumns;
     }
 
-    public void setSelectColumns(List<SelectColumnType> selectColumns) {
+    public void setSelectColumns(List<PowerColumnType> selectColumns) {
         this.selectColumns = selectColumns;
     }
     

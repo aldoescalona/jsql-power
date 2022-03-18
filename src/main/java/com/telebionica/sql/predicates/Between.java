@@ -5,9 +5,8 @@
  */
 package com.telebionica.sql.predicates;
 
-import com.telebionica.sql.data.AliasColumnType;
 import com.telebionica.sql.query.Predicate;
-import com.telebionica.sql.data.ParamColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.QueryBuilderException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,12 +18,11 @@ import java.util.List;
 public class Between extends Predicate {
 
     private String fieldName;
-    private AliasColumnType aliasColumnType;
+    private PowerColumnType aliasColumnType;
     private Object value1;
     private Object value2;
 
-    // private List values = new ArrayList();
-    private List<ParamColumnType> types = new ArrayList<ParamColumnType>();
+    private List<PowerColumnType> types = new ArrayList<PowerColumnType>();
 
     public Between(String fieldName, Object value1, Object value2) {
         this.fieldName = fieldName;
@@ -43,7 +41,7 @@ public class Between extends Predicate {
     }
 
     @Override
-    public List<ParamColumnType> getValueTypes() {
+    public List<PowerColumnType> getValueTypes() {
         return types;
     }
 
@@ -56,7 +54,7 @@ public class Between extends Predicate {
             throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
 
-        types.add(new ParamColumnType(value1, aliasColumnType.getColumnType()));
-        types.add(new ParamColumnType(value2, aliasColumnType.getColumnType()));
+        types.add(new PowerColumnType(aliasColumnType.getColumnType(), value1));
+        types.add(new PowerColumnType(aliasColumnType.getColumnType(), value2));
     }
 }

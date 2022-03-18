@@ -5,7 +5,7 @@
  */
 package com.telebionica.sql.order;
 
-import com.telebionica.sql.data.AliasColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.Query;
 import com.telebionica.sql.query.QueryBuilderException;
 
@@ -14,13 +14,12 @@ import com.telebionica.sql.query.QueryBuilderException;
  * @author aldo
  */
 public class Order {
-    
+
     private Query query;
-    private AliasColumnType aliasColumnType;
-    
+    private PowerColumnType aliasColumnType;
+
     private String fieldName;
     private String order;
-   
 
     public Order(String colname, String order) {
         this.fieldName = colname;
@@ -42,24 +41,23 @@ public class Order {
     public void setQuery(Query query) {
         this.query = query;
     }
-    
-    public void build() throws QueryBuilderException{
+
+    public void build() throws QueryBuilderException {
         aliasColumnType = getQuery().getAliasColumnType(fieldName);
-        if(aliasColumnType == null){
-          aliasColumnType = getQuery().getAliasColumnType(fieldName);  throw new QueryBuilderException("No existe el atributo " + fieldName);
+        if (aliasColumnType == null) {
+            throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
-        // types.add(new ParamColumnType(value, aliasColumnType.getFullColumnName(), aliasColumnType.getColumnType()));
     }
-    
-    public String getOrderStatement(){
+
+    public String getOrderStatement() {
         return String.format("%s %s", aliasColumnType.getFullColumnName(), order);
     }
-    
-    public static Asc asc(String colname){
+
+    public static Asc asc(String colname) {
         return new Asc(colname);
     }
-    
-    public static Desc desc(String colname){
+
+    public static Desc desc(String colname) {
         return new Desc(colname);
     }
 }

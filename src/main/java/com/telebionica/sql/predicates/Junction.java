@@ -6,7 +6,7 @@
 package com.telebionica.sql.predicates;
 
 import com.telebionica.sql.query.Predicate;
-import com.telebionica.sql.data.ParamColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.QueryBuilderException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,7 +22,7 @@ public class Junction extends Predicate {
     private JUNCTION_TYPE junctionType;
     private List<Predicate> predicates = new ArrayList();
     private String sql;
-    private List<ParamColumnType> types = new ArrayList<ParamColumnType>();
+    private List<PowerColumnType> types = new ArrayList<PowerColumnType>();
     
     public Junction(JUNCTION_TYPE junctionType, Predicate p1, Predicate p2, Predicate... pn) {
         this.junctionType = junctionType;

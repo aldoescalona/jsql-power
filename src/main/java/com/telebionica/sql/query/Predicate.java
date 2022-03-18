@@ -5,7 +5,7 @@
  */
 package com.telebionica.sql.query;
 
-import com.telebionica.sql.data.ParamColumnType;
+import com.telebionica.sql.data.PowerColumnType;
 import java.util.List;
 
 
@@ -19,7 +19,7 @@ public abstract class Predicate {
     
     public abstract String getPredicateStatement();
     public abstract boolean hasValues();
-    public abstract List<ParamColumnType> getValueTypes();
+    public abstract List<PowerColumnType> getValueTypes();
     public abstract void build() throws QueryBuilderException;
 
     public Query getQuery() {
