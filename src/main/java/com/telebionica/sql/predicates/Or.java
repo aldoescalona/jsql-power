@@ -5,8 +5,6 @@
  */
 package com.telebionica.sql.predicates;
 
-import com.telebionica.sql.query.Predicate;
-
 /**
  *
  * @author aldo

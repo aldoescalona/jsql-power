@@ -5,12 +5,14 @@
  */
 package com.telebionica.sql.query;
 
+import com.telebionica.sql.predicates.Predicate;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.telebionica.sql.order.Order;
 import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.type.TableType;
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.setu.SetForUpdate;
 import com.telebionica.sql.type.ManyToOneType;
 import java.lang.reflect.Modifier;
 import java.sql.Connection;
@@ -49,6 +51,7 @@ public class Query<E> {
     private QTYPE qtype;
 
     private List<Predicate> predicates;
+    private List<SetForUpdate> sets;
 
     public Query(AbstractQueryBuilder queryBuilder) throws SQLException, QueryBuilderException {
         this.queryBuilder = queryBuilder;
@@ -119,9 +122,9 @@ public class Query<E> {
         }
         queryBuilder.joins(path, alias, rootJoinNodes, tableType, jointype);
 
-        Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
+        /* Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
         String json = gson.toJson(rootJoinNodes);
-        System.out.println(" JOINS: " + json);
+        System.out.println(" JOINS: " + json); */
 
         return this;
     }
@@ -141,6 +144,12 @@ public class Query<E> {
     public Query addOrder(Order order) {
         order.setQuery(this);
         orders.add(order);
+        return this;
+    }
+
+    public Query set(SetForUpdate set) {
+        set.setQuery(this);
+        sets.add(set);
         return this;
     }
 
@@ -307,22 +316,39 @@ public class Query<E> {
         String query = sb.toString();
 
         System.out.println(" UPDATE QUERY: " + query);
-
+        int c = 0;
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
             for (PowerColumnType powerValue : orderParams) {
                 powerValue.powerStatement(pstm, i++);
             }
-            pstm.executeUpdate();
+            c = pstm.executeUpdate();
         }
-        System.out.println(" INSERT " + sb);
 
-        return 0;
+        return c;
+    }
+
+    public Query<E> update(Class<E> entityClass, String alias) throws SQLException, QueryBuilderException {
+
+        if (qtype != null && (qtype == QTYPE.SELECT || qtype == QTYPE.INSERT || qtype == QTYPE.DELETE)) {
+            throw new QueryBuilderException("Ya se ha fijado el query como " + qtype + " elija oportunamente un tipo");
+        }
+
+        qtype = QTYPE.UPDATE;
+
+        this.rootAlias = alias;
+        this.entityClass = entityClass;
+        this.tableType = queryBuilder.getTableType(entityClass);
+
+        this.rootJoinNodes = new ArrayList();
+        this.orders = new ArrayList();
+        this.predicates = new ArrayList();
+        this.sets = new ArrayList<>();
+        return this;
     }
 
     public int delete(E e) {
-
         return 0;
     }
 
@@ -367,7 +393,7 @@ public class Query<E> {
 
         int c = 0;
 
-        ParametrizedQuery pq = dryRun(false);
+        ParametrizedQuery pq = dryRun(true);
         String query = pq.getQuery();
         try ( Connection conn = queryBuilder.getConnection();  PreparedStatement pstm = conn.prepareStatement(query)) {
 
@@ -452,7 +478,11 @@ public class Query<E> {
             throw new QueryBuilderException("No esta definida la tabla en donde construir el query");
         }
 
+        String query = "";
+
         StringBuilder sb = new StringBuilder();
+        String joiners = joins(rootAlias, rootJoinNodes);
+
         if (qtype == QTYPE.SELECT) {
 
             sb.append("SELECT ");
@@ -478,6 +508,53 @@ public class Query<E> {
                 sb.append("COUNT(*)");
             }
 
+            sb.append("\nFROM ");
+            if (schema != null) {
+                sb.append(schema).append(".");
+            }
+            sb.append(tableType.getName()).append(" ").append(rootAlias).append(" ");
+            sb.append(joiners);
+
+            StringBuilder wheresb = new StringBuilder();
+            if (predicates.size() > 0) {
+                wheresb.append("\nWHERE ");
+
+                Iterator<Predicate> it = predicates.iterator();
+                while (it.hasNext()) {
+                    Predicate p = it.next();
+                    p.build();
+
+                    wheresb.append(p.getPredicateStatement());
+                    params.addAll(p.getValueTypes());
+
+                    if (it.hasNext()) {
+                        wheresb.append(" AND ");
+                    }
+                }
+            }
+            sb.append(wheresb);
+
+            if (count) {
+                query = sb.toString();
+            } else {
+                if (orders.size() > 0) {
+                    sb.append("\nORDER BY ");
+                    Iterator<Order> it = orders.iterator();
+                    while (it.hasNext()) {
+                        Order order = it.next();
+                        order.build();
+                        sb.append(order.getOrderStatement());
+
+                        if (it.hasNext()) {
+                            sb.append(", ");
+                        }
+                    }
+                }
+
+                query = sb.toString();
+                query = limit(query);
+            }
+
         } else if (qtype == QTYPE.DELETE) {
 
             sb.append("DELETE ");
@@ -498,56 +575,81 @@ public class Query<E> {
                     sb.append(",");
                 }
             }
-        }
 
-        String joiners = joins(rootAlias, rootJoinNodes);
-
-        sb.append("\nFROM ");
-
-        if (schema != null) {
-            sb.append(schema).append(".");
-        }
-        sb.append(tableType.getName()).append(" ").append(rootAlias).append(" ");
-
-        sb.append(joiners);
-
-        if (predicates.size() > 0) {
-            sb.append("\nWHERE ");
-
-            Iterator<Predicate> it = predicates.iterator();
-            while (it.hasNext()) {
-                Predicate p = it.next();
-                p.build();
-
-                sb.append(p.getPredicateStatement());
-                params.addAll(p.getValueTypes());
-
-                if (it.hasNext()) {
-                    sb.append(" AND ");
-                }
+            sb.append("\nFROM ");
+            if (schema != null) {
+                sb.append(schema).append(".");
             }
-        }
+            sb.append(tableType.getName()).append(" ").append(rootAlias).append(" ");
+            sb.append(joiners);
 
-        if (qtype == QTYPE.SELECT && !count) {
+            StringBuilder wheresb = new StringBuilder();
+            if (predicates.size() > 0) {
+                wheresb.append("\nWHERE ");
 
-            if (orders.size() > 0) {
-                sb.append("\nORDER BY ");
-                Iterator<Order> it = orders.iterator();
+                Iterator<Predicate> it = predicates.iterator();
                 while (it.hasNext()) {
-                    Order order = it.next();
-                    order.build();
-                    sb.append(order.getOrderStatement());
+                    Predicate p = it.next();
+                    p.build();
+
+                    wheresb.append(p.getPredicateStatement());
+                    params.addAll(p.getValueTypes());
 
                     if (it.hasNext()) {
-                        sb.append(", ");
+                        wheresb.append(" AND ");
                     }
                 }
             }
-        }
+            sb.append(wheresb);
 
-        String query = sb.toString();
-        if (qtype == QTYPE.SELECT && !count) {
-            query = limit(query);
+            query = sb.toString();
+        } else if (qtype == QTYPE.UPDATE) {
+            sb.append("UPDATE ");
+            if (schema != null) {
+                sb.append(schema).append(".");
+            }
+            sb.append(tableType.getName()).append(" ").append(rootAlias).append(" ");
+
+            sb.append(joiners);
+
+            if (!sets.isEmpty()) {
+                sb.append("\nSET ");
+            }
+
+            Iterator<SetForUpdate> it = sets.iterator();
+            while (it.hasNext()) {
+                SetForUpdate p = it.next();
+                p.build();
+
+                sb.append(p.getAsignStatement());
+                if (p.hasValue()) {
+                    params.add(p.getValueType());
+                }
+
+                if (it.hasNext()) {
+                    sb.append(", ");
+                }
+            }
+
+            StringBuilder wheresb = new StringBuilder();
+            if (predicates.size() > 0) {
+                wheresb.append("\nWHERE ");
+
+                Iterator<Predicate> itp = predicates.iterator();
+                while (itp.hasNext()) {
+                    Predicate p = itp.next();
+                    p.build();
+
+                    wheresb.append(p.getPredicateStatement());
+                    params.addAll(p.getValueTypes());
+
+                    if (itp.hasNext()) {
+                        wheresb.append(" AND ");
+                    }
+                }
+            }
+            sb.append(wheresb.toString());
+            query = sb.toString();
         }
 
         System.out.println(" QUERY: " + query);

@@ -3,9 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.query;
+package com.telebionica.sql.predicates;
 
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.query.Query;
+import com.telebionica.sql.query.QueryBuilderException;
 import java.util.List;
 
 

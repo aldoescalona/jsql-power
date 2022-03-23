@@ -3,35 +3,35 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.predicates;
+package com.telebionica.sql.setu;
 
+import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.QueryBuilderException;
-import java.util.List;
 
 /**
  *
  * @author aldo
  */
-public class IsNotNull extends Predicate {
+public class SetRaw extends SetForUpdate{
+    
+    private String raw;
 
-    private String colname;
-
-    public IsNotNull(String colname) {
-        this.colname = colname;
+    public SetRaw(String raw) {
+        this.raw = raw;
+    }
+    
+    @Override
+    public String getAsignStatement() {
+        return raw;
     }
 
     @Override
-    public String getPredicateStatement() {
-        return String.format("%s IS NOT NULL", colname);
-    }
-
-    @Override
-    public boolean hasValues() {
+    public boolean hasValue() {
         return false;
     }
 
     @Override
-    public List getValueTypes() {
+    public PowerColumnType getValueType() {
         return null;
     }
 

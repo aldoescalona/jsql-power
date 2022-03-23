@@ -3,15 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.query;
-
-import com.telebionica.sql.predicates.Between;
-import com.telebionica.sql.predicates.Comparison;
-import com.telebionica.sql.predicates.Eq;
-import com.telebionica.sql.predicates.IsNotNull;
-import com.telebionica.sql.predicates.IsNull;
-import com.telebionica.sql.predicates.Or;
-import com.telebionica.sql.predicates.RawPredicate;
+package com.telebionica.sql.predicates;
 
 /**
  *

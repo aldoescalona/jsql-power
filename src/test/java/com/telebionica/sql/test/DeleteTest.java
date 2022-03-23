@@ -4,7 +4,7 @@ import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.sql.order.Order;
 import com.telebionica.sql.predicates.Comparison;
 import com.telebionica.sql.predicates.Junction;
-import com.telebionica.sql.query.Predicates;
+import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;

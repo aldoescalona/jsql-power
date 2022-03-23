@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class InsertItemPowerTest {
+public class PruebaInsertItemTest {
     
      @Test
     public void test() {

@@ -4,7 +4,7 @@ import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.sql.order.Order;
 import com.telebionica.sql.predicates.Comparison;
 import com.telebionica.sql.predicates.Junction;
-import com.telebionica.sql.query.Predicates;
+import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -19,9 +19,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class CountTest {
+public class FacturaCountTest {
 
-    public CountTest() {
+    public FacturaCountTest() {
     }
 
     @org.junit.jupiter.api.BeforeAll
@@ -44,7 +44,7 @@ public class CountTest {
     // The methods must be annotated with annotation @Test. For example:
     //
     @Test
-    public void hello() {
+    public void prueba() {
 
         System.out.println(" PROBANDO PROBANDO");
 
@@ -64,7 +64,7 @@ public class CountTest {
                     select().
                     from(Factura.class, "f").
                     join("emisorFactura", "ef1").
-                    where(Predicates.eq("f.folioSat", "BD915E07-49C3-4D39-BB26-959FD408A4AC")).
+                    where(Predicates.eq("ef1.id", 1476333018261L)).
                     addOrder(Order.asc("f.folioSat")).
                     addOrder(Order.desc("f.estado")).
                     setFirstResult(0).

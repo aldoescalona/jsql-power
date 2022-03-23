@@ -6,7 +6,7 @@ import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Comparison;
 import com.telebionica.sql.predicates.Junction;
-import com.telebionica.sql.query.Predicates;
+import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class SelectPowerTest {
+public class PruebaSelectTest {
 
     
     @Test

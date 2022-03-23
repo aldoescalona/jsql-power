@@ -5,7 +5,6 @@
  */
 package com.telebionica.sql.predicates;
 
-import com.telebionica.sql.query.Predicate;
 import com.telebionica.sql.query.QueryBuilderException;
 import java.util.List;
 

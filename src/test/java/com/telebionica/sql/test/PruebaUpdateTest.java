@@ -6,7 +6,7 @@
 package com.telebionica.sql.test;
 
 import com.telebionica.sql.power.Prueba;
-import com.telebionica.sql.query.Predicates;
+import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class UpdatePowerTest {
+public class PruebaUpdateTest {
     
      @Test
     public void test() {
