@@ -29,9 +29,9 @@ public class PruebaSelectTest {
 
         try {
 
-            QueryBuilder queryBuilder = new QueryBuilder();
-            queryBuilder.setMetadaSchema("RSTX");
-            Query<Factura> query = queryBuilder.createQuery();
+            PowerManager pm = new PowerManager();
+            pm.setMetadaSchema("RSTX");
+            Query query = pm.createQuery();
 
 
             query.schema("RST0").

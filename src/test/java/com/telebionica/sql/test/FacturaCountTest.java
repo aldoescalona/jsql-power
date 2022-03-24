@@ -2,6 +2,7 @@ package com.telebionica.sql.test;
 
 import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.sql.order.Order;
+import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Comparison;
 import com.telebionica.sql.predicates.Junction;
 import com.telebionica.sql.predicates.Predicates;
@@ -55,9 +56,9 @@ public class FacturaCountTest {
         }*/
         try {
 
-            QueryBuilder queryBuilder = new QueryBuilder();
-            queryBuilder.setMetadaSchema("RSTX");
-            Query<Factura> query = queryBuilder.createQuery();
+            PowerManager pm = new PowerManager();
+            pm.setMetadaSchema("RSTX");
+            Query query = pm.createQuery();
 
 
             query.schema("RST0").

@@ -25,9 +25,9 @@ public class PruebaUpdate2Test {
 
         try {
 
-            QueryBuilder queryBuilder = new QueryBuilder();
-            queryBuilder.setMetadaSchema("RSTX");
-            Query<Prueba> query = queryBuilder.createQuery();
+            PowerManager pm = new PowerManager();
+            pm.setMetadaSchema("RSTX");
+            Query<Prueba> query = pm.createQuery();
 
             /*int c = query.schema("RST0").update(Prueba.class, "e")
                     .set(SetsForUpdate.value("e.datoIntA", 89))

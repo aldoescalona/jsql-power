@@ -23,9 +23,9 @@ public class PruebaUpdateTest {
 
         try {
 
-            QueryBuilder queryBuilder = new QueryBuilder();
-            queryBuilder.setMetadaSchema("RSTX");
-            Query<Prueba> query = queryBuilder.createQuery();
+            PowerManager pm = new PowerManager();
+            pm.setMetadaSchema("RSTX");
+            Query query = pm.createQuery();
 
             List<Prueba> list = query.schema("RST0").select().from(Prueba.class)
                     .where(Predicates.eq("id", 1L))
@@ -36,8 +36,8 @@ public class PruebaUpdateTest {
             Prueba p = list.get(0);
             p.setDatoIntA(120);
             
-            query.update(p);
-            query.update(p, "datoIntA");
+            pm.update("RST0", p);
+            pm.update("RST0", p, "datoIntA");
             
             
         } catch (Exception e) {

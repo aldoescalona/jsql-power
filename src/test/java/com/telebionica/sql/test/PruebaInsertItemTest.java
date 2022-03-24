@@ -24,9 +24,8 @@ public class PruebaInsertItemTest {
 
         try {
 
-            QueryBuilder queryBuilder = new QueryBuilder();
-            queryBuilder.setMetadaSchema("RSTX");
-            Query<Prueba> query = queryBuilder.createQuery();
+            PowerManager pm = new PowerManager();
+            pm.setMetadaSchema("RSTX");
 
             Prueba p = new Prueba();
             p.setId(1L);
@@ -49,7 +48,7 @@ public class PruebaInsertItemTest {
             item.setDescripcion("Lorem ipsum dolor sit amet");
             item.setPruebaId(p);
             
-            query.schema("RST0").insert(item);
+            pm.insert("RST0", item);
             
             
         } catch (Exception e) {

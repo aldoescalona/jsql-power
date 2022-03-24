@@ -23,12 +23,11 @@ public class PruebaInsertTest {
 
         try {
 
-            QueryBuilder queryBuilder = new QueryBuilder();
-            queryBuilder.setMetadaSchema("RSTX");
-            Query<Prueba> query = queryBuilder.createQuery();
+            PowerManager pm = new PowerManager();
+            pm.setMetadaSchema("RSTX");
 
             Prueba p = new Prueba();
-            p.setId(2L);
+            p.setId(3L);
             p.setDatoIntA(2);
             p.setDatoChar("CHAR$%##");
             p.setDatoIntB(3);
@@ -43,7 +42,7 @@ public class PruebaInsertTest {
             p.setDatoBoolean(Boolean.TRUE);
             p.setDatoDouble(5.309d);
             
-            query.schema("RST0").insert(p);
+            pm.insert("RST0", p);
             
             
         } catch (Exception e) {
