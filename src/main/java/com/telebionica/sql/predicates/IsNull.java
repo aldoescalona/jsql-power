@@ -5,7 +5,9 @@
  */
 package com.telebionica.sql.predicates;
 
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.QueryBuilderException;
+import java.sql.Connection;
 import java.util.List;
 
 /**
@@ -36,6 +38,6 @@ public class IsNull extends Predicate {
     }
 
     @Override
-    public void build() throws QueryBuilderException{
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException{
     }
 }

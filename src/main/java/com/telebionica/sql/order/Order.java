@@ -6,8 +6,12 @@
 package com.telebionica.sql.order;
 
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.Query;
 import com.telebionica.sql.query.QueryBuilderException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  *
@@ -42,8 +46,8 @@ public class Order {
         this.query = query;
     }
 
-    public void build() throws QueryBuilderException {
-        aliasColumnType = getQuery().getAliasColumnType(fieldName);
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
+        aliasColumnType = query.getPowerManager().getAliasColumnType(fieldName, query, rootJoinNodes, conn);
         if (aliasColumnType == null) {
             throw new QueryBuilderException("No existe el atributo " + fieldName);
         }

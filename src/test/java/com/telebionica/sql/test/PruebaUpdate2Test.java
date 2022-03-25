@@ -10,7 +10,6 @@ import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import com.telebionica.sql.setu.SetsForUpdate;
-import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

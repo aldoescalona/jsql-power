@@ -6,7 +6,10 @@
 package com.telebionica.sql.predicates;
 
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.QueryBuilderException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,11 +48,10 @@ public class Between extends Predicate {
     }
 
     @Override
-    public void build() throws QueryBuilderException {
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
         types.clear();
-        aliasColumnType = getQuery().getAliasColumnType(fieldName);
+        aliasColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery(), rootJoinNodes, conn);
         if (aliasColumnType == null) {
-            aliasColumnType = getQuery().getAliasColumnType(fieldName);
             throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
 

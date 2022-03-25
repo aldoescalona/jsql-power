@@ -7,7 +7,6 @@ package com.telebionica.sql.test;
 
 import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
-import com.telebionica.sql.query.Query;
 import java.math.BigDecimal;
 import java.util.Date;
 import org.junit.jupiter.api.Assertions;
@@ -44,7 +43,7 @@ public class PruebaInsertItemTest {
             p.setDatoDouble(5.309d);
             
             ItemPrueba item = new ItemPrueba();
-            item.setId(2L);
+            item.setId(3L);
             item.setDescripcion("Lorem ipsum dolor sit amet");
             item.setPruebaId(p);
             

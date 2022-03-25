@@ -6,8 +6,11 @@
 package com.telebionica.sql.predicates;
 
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.Query;
 import com.telebionica.sql.query.QueryBuilderException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
 
@@ -22,7 +25,7 @@ public abstract class Predicate {
     public abstract String getPredicateStatement();
     public abstract boolean hasValues();
     public abstract List<PowerColumnType> getValueTypes();
-    public abstract void build() throws QueryBuilderException;
+    public abstract void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException;
 
     public Query getQuery() {
         return query;

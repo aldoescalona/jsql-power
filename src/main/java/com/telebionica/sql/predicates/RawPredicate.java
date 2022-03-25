@@ -5,6 +5,8 @@
  */
 package com.telebionica.sql.predicates;
 
+import com.telebionica.sql.query.JoinNode;
+import java.sql.Connection;
 import java.util.List;
 
 /**
@@ -35,6 +37,6 @@ public class RawPredicate extends Predicate {
     }
 
     @Override
-    public void build() {
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) {
     }
 }

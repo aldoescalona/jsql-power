@@ -5,6 +5,9 @@
  */
 package com.telebionica.sql.test;
 
+import com.telebionica.sql.dialect.AbstractDialect;
+import com.telebionica.sql.dialect.Dialect;
+import com.telebionica.sql.dialect.MySQLDialect;
 import com.telebionica.sql.power.AbstractPowerManager;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -16,11 +19,14 @@ import java.util.logging.Logger;
  *
  * @author aldo
  */
+@Dialect(dialectClass = MySQLDialect.class)
 public class PowerManager extends AbstractPowerManager {
 
     private static final String ESQUEMA_RISTO = "risto";
     private static final String ESQUEMA_RST = "RSTX";
-    
+
+    public PowerManager() {
+    }
 
     static {
         try {
@@ -45,7 +51,4 @@ public class PowerManager extends AbstractPowerManager {
         return conn;
     }
 
-    
-    
-    
 }

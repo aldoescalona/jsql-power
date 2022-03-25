@@ -6,7 +6,6 @@
 package com.telebionica.sql.test;
 
 import com.telebionica.sql.power.Prueba;
-import com.telebionica.sql.query.Query;
 import java.math.BigDecimal;
 import java.util.Date;
 import org.junit.jupiter.api.Assertions;
@@ -27,7 +26,7 @@ public class PruebaInsertTest {
             pm.setMetadaSchema("RSTX");
 
             Prueba p = new Prueba();
-            p.setId(3L);
+            p.setId(4L);
             p.setDatoIntA(2);
             p.setDatoChar("CHAR$%##");
             p.setDatoIntB(3);

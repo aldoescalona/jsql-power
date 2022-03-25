@@ -6,7 +6,11 @@
 package com.telebionica.sql.setu;
 
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.QueryBuilderException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  *
@@ -41,13 +45,13 @@ public class SetColumnValue extends SetForUpdate{
     }
 
     @Override
-    public void build() throws QueryBuilderException {
-        fieldColumnType = getQuery().getAliasColumnType(fieldName);
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
+        fieldColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery(), rootJoinNodes, conn);
         if(fieldColumnType == null){
           throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
         
-        fieldValueColumnType = getQuery().getAliasColumnType(fieldValue);
+        fieldValueColumnType = getQuery().getPowerManager().getAliasColumnType(fieldValue, getQuery(), rootJoinNodes, conn);
         if(fieldValueColumnType == null){
           throw new QueryBuilderException("No existe el atributo " + fieldValue);
         }

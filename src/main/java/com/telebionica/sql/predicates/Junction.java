@@ -6,7 +6,10 @@
 package com.telebionica.sql.predicates;
 
 import com.telebionica.sql.data.PowerColumnType;
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.QueryBuilderException;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
@@ -52,7 +55,7 @@ public class Junction extends Predicate {
 
     
     @Override
-    public void build() throws QueryBuilderException {
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
 
         types.clear();
         
@@ -63,7 +66,7 @@ public class Junction extends Predicate {
         while (it.hasNext()) {
             Predicate p = it.next();
             p.setQuery(getQuery());
-            p.build();
+            p.build(rootJoinNodes, conn);
             
             sb.append(p.getPredicateStatement());
             if (p.hasValues()) {

@@ -17,11 +17,13 @@ public class ParametrizedQuery {
     private String query;
     private List<PowerColumnType> params = new ArrayList();
     private List<PowerColumnType> selectColumns;
+    private List<JoinNode> joinNodes;
 
-    public ParametrizedQuery(String query, List<PowerColumnType> params, List<PowerColumnType> selectColumns) {
+    public ParametrizedQuery(String query, List<PowerColumnType> params, List<PowerColumnType> selectColumns, List<JoinNode> joinNodes) {
         this.query = query;
         this.params = params;
         this.selectColumns = selectColumns;
+        this.joinNodes = joinNodes;
     }
 
     public String getQuery() {
@@ -36,4 +38,8 @@ public class ParametrizedQuery {
         return selectColumns;
     }
 
+    public List<JoinNode> getJoinNodes() {
+        return joinNodes;
+    }
+    
 }
