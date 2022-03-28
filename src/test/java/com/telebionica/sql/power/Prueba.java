@@ -14,6 +14,8 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Lob;
 import javax.persistence.NamedQueries;
@@ -37,6 +39,11 @@ public class Prueba implements Serializable {
 
     private static final long serialVersionUID = 1L;
     @Id
+    @GeneratedValue(strategy=GenerationType.AUTO,  generator = "generator")
+    // @GeneratedValue(strategy=GenerationType.SEQUENCE,  generator = "ticket_id_seq")
+    // @GeneratedValue(strategy=GenerationType.IDENTITY,  generator = "com.telebionica.commons.Generator")
+    
+    // @SequenceGenerator(name="book_generator", sequenceName = "book_seq", allocationSize=50)
     @Basic(optional = false)
     @NotNull
     @Column(name = "id")

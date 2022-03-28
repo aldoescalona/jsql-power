@@ -51,7 +51,7 @@ public class DeleteTest {
 
         try {
 
-            PowerManager pm = new PowerManager();
+            TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
             Query query = pm.createQuery();
 

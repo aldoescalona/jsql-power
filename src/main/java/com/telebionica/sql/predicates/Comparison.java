@@ -24,7 +24,7 @@ public class Comparison extends Predicate {
     
     private COMPARISON_OPERATOR operator;
     private Object value;
-    private List<PowerColumnType> types = new ArrayList<PowerColumnType>();
+    private List<PowerColumnType> types;
 
     public Comparison(String fieldName, COMPARISON_OPERATOR operator, Object value) {
         this.fieldName = fieldName;
@@ -49,7 +49,7 @@ public class Comparison extends Predicate {
 
     @Override
     public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException{
-        types.clear();
+        types = new ArrayList();
         aliasColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery(), rootJoinNodes, conn);
         if(aliasColumnType == null){
           throw new QueryBuilderException("No existe el atributo " + fieldName);
@@ -77,6 +77,10 @@ public class Comparison extends Predicate {
         }
         
         private final String operator;
+    }
+
+    public Object getValue() {
+        return value;
     }
     
 }

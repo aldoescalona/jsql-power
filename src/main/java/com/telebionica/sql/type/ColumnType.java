@@ -5,6 +5,17 @@
  */
 package com.telebionica.sql.type;
 
+import com.telebionica.sql.query.JoinNode;
+import com.telebionica.sql.query.QueryBuilderException;
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 
 /**
  *
@@ -18,6 +29,9 @@ public class ColumnType {
     private Integer type;
     private Integer scale;
     private boolean primary;
+    private GeneratorType generatorType;
+    
+    
     protected TableType tableType;
 
     public ColumnType(String columnName, String fieldName, Class clazz, TableType tableType) {
@@ -78,6 +92,34 @@ public class ColumnType {
     public void setTableType(TableType tableType) {
         this.tableType = tableType;
     }
+
+    public GeneratorType getGeneratorType() {
+        return generatorType;
+    }
+
+    public void setGeneratorType(GeneratorType generatorType) {
+        this.generatorType = generatorType;
+    }
     
-    
+    public Method getWriteMethod() throws IntrospectionException {
+        BeanInfo beanInfo = Introspector.getBeanInfo(tableType.getEntityClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            if (pd.getName().equalsIgnoreCase(fieldName)) {
+                return pd.getWriteMethod();
+            }
+        }
+        return null;
+    }
+
+    public Method getReadMethod() throws IntrospectionException {
+        BeanInfo beanInfo = Introspector.getBeanInfo(tableType.getEntityClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            if (pd.getName().equalsIgnoreCase(fieldName)) {
+                return pd.getReadMethod();
+            }
+        }
+        return null;
+    }
 }

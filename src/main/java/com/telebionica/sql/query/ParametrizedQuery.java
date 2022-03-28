@@ -25,6 +25,12 @@ public class ParametrizedQuery {
         this.selectColumns = selectColumns;
         this.joinNodes = joinNodes;
     }
+    
+    public ParametrizedQuery(String query, List<PowerColumnType> params, List<JoinNode> joinNodes) {
+        this.query = query;
+        this.params = params;
+        this.joinNodes = joinNodes;
+    }
 
     public String getQuery() {
         return query;

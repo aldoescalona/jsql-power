@@ -5,17 +5,33 @@
  */
 package com.telebionica.sql.dialect;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.telebionica.sql.power.PowerManager;
 
 /**
  *
  * @author aldo
  */
-@Target(value = {ElementType.TYPE})
-@Retention(value = RetentionPolicy.RUNTIME)
-public @interface Dialect {
-    public Class<? extends AbstractDialect> dialectClass();
+public abstract class Dialect {
+
+    protected final PowerManager pm;
+
+    public Dialect(PowerManager pm) {
+        this.pm = pm;
+    }
+    
+    public abstract String limit(String schema, String queryString, Integer first, Integer max);
+    
+    public String limit(String queryString, Integer first, Integer max){
+        return limit(null, queryString, first, max);
+    }
+
+    public String limit(String queryString, Integer max) {
+        return limit(queryString, null, max);
+    }
+    
+    public abstract String nextVal(String schema, String seq);    
+    
+    public String nextVal(String seq){
+        return nextVal(null, seq);
+    }    
 }

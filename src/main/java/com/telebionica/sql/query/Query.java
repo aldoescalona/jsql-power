@@ -8,7 +8,7 @@ package com.telebionica.sql.query;
 import com.telebionica.sql.predicates.Predicate;
 import com.telebionica.sql.order.Order;
 import com.telebionica.sql.join.Join;
-import com.telebionica.sql.power.AbstractPowerManager;
+import com.telebionica.sql.power.PowerManager;
 import com.telebionica.sql.setu.SetForUpdate;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -20,7 +20,7 @@ import java.util.List;
  */
 public class Query<E> {
 
-    private final AbstractPowerManager powerManager;
+    private final PowerManager powerManager;
 
     private QTYPE qtype;
     private String schema;
@@ -40,7 +40,7 @@ public class Query<E> {
     private List<SetForUpdate> sets;
 
 
-    public Query(AbstractPowerManager powerManager) throws SQLException, QueryBuilderException {
+    public Query(PowerManager powerManager) throws SQLException, QueryBuilderException {
         this.powerManager = powerManager;
     }
 
@@ -265,7 +265,7 @@ public class Query<E> {
         return entityClass;
     }
 
-    public AbstractPowerManager getPowerManager() {
+    public PowerManager getPowerManager() {
         return powerManager;
     }
     

@@ -5,34 +5,33 @@
  */
 package com.telebionica.sql.test;
 
-import com.telebionica.sql.dialect.AbstractDialect;
-import com.telebionica.sql.dialect.Dialect;
 import com.telebionica.sql.dialect.MySQLDialect;
-import com.telebionica.sql.power.AbstractPowerManager;
+import com.telebionica.sql.power.PowerManager;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import com.telebionica.sql.power.Power;
 
 /**
  *
  * @author aldo
  */
-@Dialect(dialectClass = MySQLDialect.class)
-public class PowerManager extends AbstractPowerManager {
+@Power(dialect = MySQLDialect.class)
+public class TestPowerManager extends PowerManager {
 
     private static final String ESQUEMA_RISTO = "risto";
     private static final String ESQUEMA_RST = "RSTX";
 
-    public PowerManager() {
+    public TestPowerManager() {
     }
 
     static {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException ex) {
-            Logger.getLogger(PowerManager.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(TestPowerManager.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 

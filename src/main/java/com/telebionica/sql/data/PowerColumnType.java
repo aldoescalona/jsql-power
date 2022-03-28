@@ -5,6 +5,7 @@
  */
 package com.telebionica.sql.data;
 
+import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.QueryBuilderException;
 import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.util.JDBCUtil;
@@ -19,6 +20,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -92,7 +95,7 @@ public class PowerColumnType {
 
         Object any = null;
         try {
-            Method m = getWriteMethod();
+            Method m = columnType.getWriteMethod();
             if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
                 Long obj = JDBCUtil.getLong(rs, columnAlias);
                 m.invoke(target, obj);
@@ -135,32 +138,71 @@ public class PowerColumnType {
 
         return any != null;
     }
+    
+    
+    
+    
+    public boolean push(Object target, ResultSet rs, int i) throws QueryBuilderException, SQLException {
 
-    public Method getWriteMethod() throws IntrospectionException {
-        BeanInfo beanInfo = Introspector.getBeanInfo(columnType.getTableType().getEntityClass());
-        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-        for (PropertyDescriptor pd : propertyDescriptors) {
-            if (pd.getName().equalsIgnoreCase(columnType.getFieldName())) {
-                return pd.getWriteMethod();
+        Object any = null;
+        try {
+            Method m = columnType.getWriteMethod();
+            if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
+                Long obj = JDBCUtil.getLong(rs, i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Integer.class) ||  columnType.getFieldClass().isAssignableFrom(int.class)) {
+                Integer obj = JDBCUtil.getInteger(rs, i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Float.class) ||  columnType.getFieldClass().isAssignableFrom(float.class)) {
+                Float obj = JDBCUtil.getFloat(rs, i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Double.class) ||  columnType.getFieldClass().isAssignableFrom(double.class)) {
+                Double obj = JDBCUtil.getDouble(rs, i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Boolean.class) ||  columnType.getFieldClass().isAssignableFrom(boolean.class)) {
+                Boolean obj = JDBCUtil.getBoolean(rs, i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(String.class)) {
+                String obj = rs.getString(i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(BigDecimal.class)) {
+                BigDecimal obj = rs.getBigDecimal(i);
+                m.invoke(target, obj);
+                any = obj;
+            } else if (columnType.getFieldClass().isAssignableFrom(Date.class)) {
+                Date obj = rs.getTimestamp(i);
+                m.invoke(target, obj);
+                any = obj;
+            } else {
+                throw new QueryBuilderException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
             }
+
+        } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            throw new QueryBuilderException(e);
         }
-        return null;
+
+        return any != null;
     }
-
-    public Method getReadMethod() throws IntrospectionException {
-        BeanInfo beanInfo = Introspector.getBeanInfo(columnType.getTableType().getEntityClass());
-        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
-        for (PropertyDescriptor pd : propertyDescriptors) {
-            if (pd.getName().equalsIgnoreCase(columnType.getFieldName())) {
-                return pd.getReadMethod();
-            }
+    
+    public void setter(Object obj, Object child) throws QueryBuilderException {
+        try {
+            Method m = columnType.getWriteMethod();
+            m.invoke(obj, child);
+        } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException | IntrospectionException ex) {
+            Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
+            throw new QueryBuilderException(ex);
         }
-        return null;
     }
 
     public void getter(Object obj) throws QueryBuilderException {
         try {
-            Method m = getReadMethod();
+            Method m = columnType.getReadMethod();
             this.value = m.invoke(obj);
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             throw new QueryBuilderException(e);

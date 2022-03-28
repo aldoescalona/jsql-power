@@ -22,7 +22,7 @@ public class PruebaInsertTest {
 
         try {
 
-            PowerManager pm = new PowerManager();
+            TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
 
             Prueba p = new Prueba();

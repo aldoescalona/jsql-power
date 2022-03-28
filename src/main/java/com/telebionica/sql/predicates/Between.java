@@ -24,7 +24,7 @@ public class Between extends Predicate {
     private Object value1;
     private Object value2;
 
-    private List<PowerColumnType> types = new ArrayList<PowerColumnType>();
+    private List<PowerColumnType> types;
 
     public Between(String fieldName, Object value1, Object value2) {
         this.fieldName = fieldName;
@@ -49,7 +49,7 @@ public class Between extends Predicate {
 
     @Override
     public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
-        types.clear();
+        types = new ArrayList();
         aliasColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery(), rootJoinNodes, conn);
         if (aliasColumnType == null) {
             throw new QueryBuilderException("No existe el atributo " + fieldName);

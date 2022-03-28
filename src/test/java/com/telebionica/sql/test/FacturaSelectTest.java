@@ -51,7 +51,7 @@ public class FacturaSelectTest {
 
         try {
 
-            PowerManager pm = new PowerManager();
+            TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
             Query<Prueba> query = pm.createQuery();
             

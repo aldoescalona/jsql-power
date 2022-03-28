@@ -43,4 +43,34 @@ public class JDBCUtil {
         byte nValue = rs.getByte(strColName);
         return rs.wasNull() ? null : nValue;
     }
+    
+    public static Integer getInteger(ResultSet rs, int index) throws SQLException {
+        int nValue = rs.getInt(index);
+        return rs.wasNull() ? null : nValue;
+    }
+    
+    public static Long getLong(ResultSet rs, int index) throws SQLException {
+        long nValue = rs.getLong(index);
+        return rs.wasNull() ? null : nValue;
+    }
+    
+    public static Float getFloat(ResultSet rs, int index) throws SQLException {
+        float nValue = rs.getFloat(index);
+        return rs.wasNull() ? null : nValue;
+    }
+    
+    public static Double getDouble(ResultSet rs, int index) throws SQLException {
+        double nValue = rs.getFloat(index);
+        return rs.wasNull() ? null : nValue;
+    }
+
+    public static Boolean getBoolean(ResultSet rs, int index) throws SQLException {
+        boolean nValue = rs.getBoolean(index);
+        return rs.wasNull() ? null : nValue;
+    }
+    
+    public static Byte getByte(ResultSet rs, int index) throws SQLException {
+        byte nValue = rs.getByte(index);
+        return rs.wasNull() ? null : nValue;
+    }
 }
