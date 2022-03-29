@@ -5,16 +5,12 @@
  */
 package com.telebionica.sql.type;
 
-import com.telebionica.sql.query.JoinNode;
-import com.telebionica.sql.query.QueryBuilderException;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import javax.persistence.Enumerated;
 
 
 /**
@@ -30,6 +26,7 @@ public class ColumnType {
     private Integer scale;
     private boolean primary;
     private GeneratorType generatorType;
+    protected Enumerated enumerated;
     
     
     protected TableType tableType;
@@ -99,6 +96,18 @@ public class ColumnType {
 
     public void setGeneratorType(GeneratorType generatorType) {
         this.generatorType = generatorType;
+    }
+
+    public Enumerated getEnumerated() {
+        return enumerated;
+    }
+
+    public void setEnumerated(Enumerated enumerated) {
+        this.enumerated = enumerated;
+    }
+    
+    public boolean hasEnumerated(){
+        return enumerated != null;
     }
     
     public Method getWriteMethod() throws IntrospectionException {

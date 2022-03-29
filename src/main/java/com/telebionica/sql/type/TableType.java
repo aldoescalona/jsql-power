@@ -21,6 +21,7 @@ public class TableType {
     private List<ColumnType> columns;
     private List<ManyToOneType> manyToOnes;
     
+    
 
     public TableType(String name, Class entityClass) {
         this.name = name;

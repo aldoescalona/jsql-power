@@ -5,37 +5,34 @@
  */
 package com.telebionica.sql.type;
 
-import com.telebionica.sql.query.JoinNode;
-import com.telebionica.sql.query.QueryBuilderException;
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.persistence.JoinColumn;
+import javax.persistence.JoinTable;
 
 /**
  *
  * @author aldo
  */
-public class ManyToOneType {
+public class ManyToManyType {
     
     private String fieldName;
     protected Class fieldClass; 
-    protected List<JoinColumn> joiners;
+    protected Class collectionRelatedClass;
+    protected JoinTable joinTable;
     protected TableType tableType;
+    private boolean reverse;
 
-    public ManyToOneType(String fieldName, Class fieldClass, List<JoinColumn> joiners, TableType tableType) {
+    public ManyToManyType(String fieldName, Class fieldClass, Class relatedClass, JoinTable joinTable, TableType tableType, boolean reverse) {
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
-        this.joiners = joiners;
+        this.collectionRelatedClass = relatedClass;
+        this.joinTable = joinTable;
         this.tableType = tableType;
+        this.reverse = reverse;
     }
 
+    public ManyToManyType(String fieldName, Class fieldClass, Class relatedClass, JoinTable joinTable, TableType tableType) {
+        this(fieldName, fieldClass, relatedClass, joinTable, tableType, false);
+    }
+    
     public String getFieldName() {
         return fieldName;
     }
@@ -52,14 +49,6 @@ public class ManyToOneType {
         this.fieldClass = fieldClass;
     }
 
-    public List<JoinColumn> getJoiners() {
-        return joiners;
-    }
-
-    public void setJoiners(List<JoinColumn> joiners) {
-        this.joiners = joiners;
-    }
-
     public TableType getTableType() {
         return tableType;
     }
@@ -68,7 +57,8 @@ public class ManyToOneType {
         this.tableType = tableType;
     }
     
-    public Object getter(Object b) throws QueryBuilderException {
+    
+    /*public Object getter(Object b) throws QueryBuilderException {
         Object obj = null;
         try {
             Method m = getReadMethod();
@@ -110,5 +100,13 @@ public class ManyToOneType {
             }
         }
         return null;
+    }*/
+
+    public boolean isReverse() {
+        return reverse;
+    }
+
+    public void setReverse(boolean reverse) {
+        this.reverse = reverse;
     }
 }

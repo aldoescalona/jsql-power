@@ -13,6 +13,8 @@ import javax.persistence.Basic;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -42,8 +44,6 @@ public class Prueba implements Serializable {
     @GeneratedValue(strategy=GenerationType.AUTO,  generator = "generator")
     // @GeneratedValue(strategy=GenerationType.SEQUENCE,  generator = "ticket_id_seq")
     // @GeneratedValue(strategy=GenerationType.IDENTITY,  generator = "com.telebionica.commons.Generator")
-    
-    // @SequenceGenerator(name="book_generator", sequenceName = "book_seq", allocationSize=50)
     @Basic(optional = false)
     @NotNull
     @Column(name = "id")
@@ -82,10 +82,15 @@ public class Prueba implements Serializable {
     @Column(name = "datoDouble")
     private Double datoDouble;
     
+    @Column(name = "datoEnum")
+    @Enumerated(EnumType.ORDINAL)
+    private  PreuebaEnumerated.DATO_ENUM datoEnum;
+    
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "pruebaId", fetch = FetchType.EAGER)
     private List<ItemPrueba> itemPruebaList;
 
     public Prueba() {
+        // int ordinal = PreuebaEnumerated.DATO_ENUM.ALIMENTO.ordinal();
     }
 
     public Prueba(Long id) {
@@ -209,6 +214,14 @@ public class Prueba implements Serializable {
         this.datoDouble = datoDouble;
     }
 
+    public PreuebaEnumerated.DATO_ENUM getDatoEnum() {
+        return datoEnum;
+    }
+
+    public void setDatoEnum(PreuebaEnumerated.DATO_ENUM datoEnum) {
+        this.datoEnum = datoEnum;
+    }
+    
     public List<ItemPrueba> getItemPruebaList() {
         return itemPruebaList;
     }
