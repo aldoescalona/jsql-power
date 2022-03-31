@@ -5,32 +5,40 @@
  */
 package com.telebionica.sql.type;
 
-import javax.persistence.JoinTable;
+import com.telebionica.sql.query.JoinNode;
+import com.telebionica.sql.query.QueryBuilderException;
+import java.beans.BeanInfo;
+import java.beans.IntrospectionException;
+import java.beans.Introspector;
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.persistence.JoinColumn;
 
 /**
  *
  * @author aldo
  */
-public class ManyToManyType {
+public class JoinColumnsType {
     
     private String fieldName;
     protected Class fieldClass; 
-    protected Class collectionRelatedClass;
-    protected JoinTable joinTable;
-    protected TableType tableType;
+    protected List<JoinColumn> joiners;
     private boolean reverse;
+    protected TableType tableType;
 
-    public ManyToManyType(String fieldName, Class fieldClass, Class collectionRelatedClass, JoinTable joinTable, TableType tableType, boolean reverse) {
+    public JoinColumnsType(String fieldName, Class fieldClass, List<JoinColumn> joiners, TableType tableType, boolean reverse) {
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
-        this.collectionRelatedClass = collectionRelatedClass;
-        this.joinTable = joinTable;
-        this.tableType = tableType;
+        this.joiners = joiners;
         this.reverse = reverse;
+        this.tableType = tableType;
     }
-
-    public ManyToManyType(String fieldName, Class fieldClass, Class relatedClass, JoinTable joinTable, TableType tableType) {
-        this(fieldName, fieldClass, relatedClass, joinTable, tableType, false);
+    public JoinColumnsType(String fieldName, Class fieldClass, List<JoinColumn> joiners, TableType tableType) {
+        this(fieldName, fieldClass, joiners, tableType, false);
     }
 
     public String getFieldName() {
@@ -49,20 +57,20 @@ public class ManyToManyType {
         this.fieldClass = fieldClass;
     }
 
-    public Class getCollectionRelatedClass() {
-        return collectionRelatedClass;
+    public List<JoinColumn> getJoiners() {
+        return joiners;
     }
 
-    public void setCollectionRelatedClass(Class collectionRelatedClass) {
-        this.collectionRelatedClass = collectionRelatedClass;
+    public void setJoiners(List<JoinColumn> joiners) {
+        this.joiners = joiners;
     }
 
-    public JoinTable getJoinTable() {
-        return joinTable;
+    public boolean isReverse() {
+        return reverse;
     }
 
-    public void setJoinTable(JoinTable joinTable) {
-        this.joinTable = joinTable;
+    public void setReverse(boolean reverse) {
+        this.reverse = reverse;
     }
 
     public TableType getTableType() {
@@ -74,9 +82,7 @@ public class ManyToManyType {
     }
     
     
-    
-    
-    /*public Object getter(Object b) throws QueryBuilderException {
+    public Object getter(Object b) throws QueryBuilderException {
         Object obj = null;
         try {
             Method m = getReadMethod();
@@ -118,13 +124,5 @@ public class ManyToManyType {
             }
         }
         return null;
-    }*/
-
-    public boolean isReverse() {
-        return reverse;
-    }
-
-    public void setReverse(boolean reverse) {
-        this.reverse = reverse;
     }
 }

@@ -105,7 +105,7 @@ public class PowerColumnType {
         Object any = null;
         try {
             Method m = columnType.getWriteMethod();
-            if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
+            if (columnType.getFieldClass().isAssignableFrom(Long.class) || columnType.getFieldClass().isAssignableFrom(long.class)) {
                 Long obj = JDBCUtil.getLong(rs, columnAlias);
                 m.invoke(target, obj);
                 any = obj;
@@ -161,7 +161,7 @@ public class PowerColumnType {
         Object any = null;
         try {
             Method m = columnType.getWriteMethod();
-            if (columnType.getFieldClass().isAssignableFrom(Long.class)) {
+            if (columnType.getFieldClass().isAssignableFrom(Long.class) || columnType.getFieldClass().isAssignableFrom(long.class)) {
                 Long obj = JDBCUtil.getLong(rs, i);
                 m.invoke(target, obj);
                 any = obj;

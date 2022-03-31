@@ -6,7 +6,7 @@
 package com.telebionica.sql.query;
 
 import com.telebionica.sql.data.PowerColumnType;
-import com.telebionica.sql.type.ManyToOneType;
+import com.telebionica.sql.type.JoinColumnsType;
 import com.telebionica.sql.type.TableType;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -22,27 +22,27 @@ import javax.persistence.JoinColumn;
 public class JoinNode {
 
     private String alias;
-    private ManyToOneType manyToOneType;
+    private JoinColumnsType joinColumnsType;
     private TableType childTableType;
     private List<PowerColumnType> selectColumns = new ArrayList();
     private Query.JOINTYPE joinType;
     private List<JoinNode> children = new ArrayList<>();
 
-    public JoinNode(String alias, ManyToOneType manyToOneType) {
+    public JoinNode(String alias, JoinColumnsType joinColumnsType) {
         this.alias = alias;
-        this.manyToOneType = manyToOneType;
+        this.joinColumnsType = joinColumnsType;
     }
 
     public String getFieldName() {
-        return manyToOneType.getFieldName();
+        return joinColumnsType.getFieldName();
     }
 
     public String getAlias() {
         return alias;
     }
 
-    public ManyToOneType getManyToOneType() {
-        return manyToOneType;
+    public JoinColumnsType getJoinColumnsType() {
+        return joinColumnsType;
     }
 
     public TableType getChildTableType() {
@@ -62,9 +62,13 @@ public class JoinNode {
     }
 
     public List<JoinColumn> getJoiners() {
-        return manyToOneType.getJoiners();
+        return joinColumnsType.getJoiners();
     }
 
+    public boolean isReverse(){
+        return joinColumnsType.isReverse();
+    }
+    
     public List<JoinNode> getChildren() {
         return children;
     }
@@ -91,7 +95,7 @@ public class JoinNode {
     }
 
     public void setter(Object obj, Object child) throws QueryBuilderException {
-       manyToOneType.setter(obj, child);
+       joinColumnsType.setter(obj, child);
     }
     
 }

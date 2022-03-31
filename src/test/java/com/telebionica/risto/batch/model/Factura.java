@@ -35,6 +35,7 @@ public class Factura {
     private Receptor receptor;
     
     @JoinColumn(name = "facturaSustitucionId", referencedColumnName = "id")
+    @ManyToOne
     private Factura facturaSustitucion;
 
     public Long getId() {

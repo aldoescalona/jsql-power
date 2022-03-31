@@ -19,7 +19,7 @@ public class TableType {
     private String name;
     protected Class entityClass;
     private List<ColumnType> columns;
-    private List<ManyToOneType> manyToOnes;
+    private List<JoinColumnsType> joinColumns;
     
     
 
@@ -70,12 +70,12 @@ public class TableType {
         this.columns = columns;
     }
 
-    public List<ManyToOneType> getManyToOnes() {
-        return manyToOnes;
+    public List<JoinColumnsType> getJoinColumns() {
+        return joinColumns;
     }
 
-    public void setManyToOnes(List<ManyToOneType> manyToOnes) {
-        this.manyToOnes = manyToOnes;
+    public void setJoinColumns(List<JoinColumnsType> joinColumns) {
+        this.joinColumns = joinColumns;
     }
     
     public ColumnType getFieldColumnType(String fieldName){
@@ -93,8 +93,8 @@ public class TableType {
         return ids;
     }
     
-    public ManyToOneType getManyToOneType(String fieldName){
-        ManyToOneType ct = manyToOnes.stream().filter(e->e.getFieldName().equals(fieldName)).findAny().orElse(null);
+    public JoinColumnsType getJoinColumnsType(String fieldName){
+        JoinColumnsType ct = joinColumns.stream().filter(e->e.getFieldName().equals(fieldName)).findAny().orElse(null);
         return ct;
     }
 }

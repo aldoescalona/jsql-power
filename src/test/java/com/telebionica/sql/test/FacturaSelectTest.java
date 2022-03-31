@@ -59,11 +59,11 @@ public class FacturaSelectTest {
             Junction or = Predicates.or(Predicates.compare("f.estado", Comparison.COMPARISON_OPERATOR.EQ_SAFENULL, 2), Predicates.isNUll("f.uuid"));
 
             query.schema("RST0").
-                    select("folioSat").
+                    select().
                     from(Factura.class, "f").
-                    left("facturaSustitucion", "fs").
+                    // left("facturaSustitucion", "fs").
                     left("emisorFactura", "ef1").
-                    left("facturaSustitucion.emisorFactura", "ef2").
+                    // left("facturaSustitucion.emisorFactura", "ef2").
                     where(Predicates.eq("f.folioSat", "E52BEAA6-D1E3-4BE3-82FD-304A3A12BA37")).
                     // and(or).
                     addOrder(Order.asc("f.folioSat")).

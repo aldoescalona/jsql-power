@@ -20,7 +20,8 @@ import com.telebionica.sql.setu.SetForUpdate;
 import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.type.GeneratorType;
 import com.telebionica.sql.type.ManyToManyType;
-import com.telebionica.sql.type.ManyToOneType;
+import com.telebionica.sql.type.JoinColumnsType;
+import com.telebionica.sql.type.OneToManyType;
 import com.telebionica.sql.type.TableType;
 import com.telebionica.sql.util.Generator;
 import java.io.Serializable;
@@ -56,6 +57,8 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinColumns;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 
 /**
@@ -133,24 +136,30 @@ public abstract class PowerManager {
             }
         }
 
-        List<ManyToOneType> m2otList = tableType.getManyToOnes();
-        for (ManyToOneType m2o : m2otList) {
+        List<JoinColumnsType> jcstList = tableType.getJoinColumns();
+        for (JoinColumnsType jct : jcstList) {
 
-            Object obj = m2o.getter(e);
+            Object obj = jct.getter(e);
             if (obj == null) {
                 continue;
             }
 
-            TableType otherTT = this.getTableType(m2o.getFieldClass(), conn);
+            TableType otherTT = this.getTableType(jct.getFieldClass(), conn);
 
-            List<JoinColumn> jcs = m2o.getJoiners();
+            List<JoinColumn> jcs = jct.getJoiners();
             for (JoinColumn jc : jcs) {
-                String columName = jc.referencedColumnName();
-                ColumnType ct = otherTT.getColumnType(columName);
-                PowerColumnType param = new PowerColumnType(ct);
-                param.setColumnAlias(jc.name());
-                param.getter(obj);
-                insertParams.add(param);
+                if (jc.insertable()) {
+
+                    boolean reverse = jct.isReverse();
+                    String jcName = reverse ? jc.referencedColumnName() : jc.name();
+                    String referencedColumnName = reverse ? jc.name() : jc.referencedColumnName();
+
+                    ColumnType ct = otherTT.getColumnType(referencedColumnName);
+                    PowerColumnType param = new PowerColumnType(ct);
+                    param.setColumnAlias(jcName);
+                    param.getter(obj);
+                    insertParams.add(param);
+                }
 
             }
         }
@@ -261,25 +270,30 @@ public abstract class PowerManager {
             updateParams.add(param);
         }
 
-        List<ManyToOneType> m2otList = tableType.getManyToOnes();
-        for (ManyToOneType m2o : m2otList) {
+        List<JoinColumnsType> jctList = tableType.getJoinColumns();
+        for (JoinColumnsType jct : jctList) {
 
-            Object obj = m2o.getter(e);
+            Object obj = jct.getter(e);
             if (obj == null) {
                 continue;
             }
 
-            TableType otherTT = this.getTableType(m2o.getFieldClass(), conn);
+            TableType otherTT = this.getTableType(jct.getFieldClass(), conn);
 
-            List<JoinColumn> jcs = m2o.getJoiners();
+            List<JoinColumn> jcs = jct.getJoiners();
             for (JoinColumn jc : jcs) {
-                String columName = jc.referencedColumnName();
-                ColumnType ct = otherTT.getColumnType(columName);
-
-                PowerColumnType param = new PowerColumnType(ct);
-                param.setColumnAlias(jc.name());
-                param.getter(obj);
-                updateParams.add(param);
+                if (jc.updatable()) {
+                    
+                    boolean reverse = jct.isReverse();
+                    String jcName = reverse ? jc.referencedColumnName() : jc.name();
+                    String referencedColumnName = reverse ? jc.name() : jc.referencedColumnName();
+                    
+                    ColumnType ct = otherTT.getColumnType(referencedColumnName);
+                    PowerColumnType param = new PowerColumnType(ct);
+                    param.setColumnAlias(jcName);
+                    param.getter(obj);
+                    updateParams.add(param);
+                }
             }
         }
 
@@ -438,15 +452,17 @@ public abstract class PowerManager {
         TableType tableType = new TableType(tableNeme, entityClass);
 
         List<ColumnType> columns = new ArrayList();
-        List<ManyToOneType> manyToOneTypes = new ArrayList();
+        List<JoinColumnsType> joinColumnsTypes = new ArrayList();
         List<ManyToManyType> manyToManyTypes = new ArrayList();
+        List<OneToManyType> oneToManyTypes = new ArrayList();
 
         Field[] scopeFields = entityClass.getDeclaredFields();
 
         for (Field field : scopeFields) {
             addColumnType(field, columns, tableType);
-            addManyToOneType(field, manyToOneTypes, tableType);
+            addJoinColumnsType(field, joinColumnsTypes, tableType);
             addManyToManyType(field, manyToManyTypes, tableType);
+            // addOneToManyType();
         }
 
         StringBuilder sb = new StringBuilder("SELECT ");
@@ -492,7 +508,7 @@ public abstract class PowerManager {
         }
 
         tableType.setColumns(columns);
-        tableType.setManyToOnes(manyToOneTypes);
+        tableType.setJoinColumns(joinColumnsTypes);
 
         Gson gson = new GsonBuilder()
                 .excludeFieldsWithModifiers(Modifier.PROTECTED)
@@ -545,7 +561,7 @@ public abstract class PowerManager {
                 } else {
                     String mbyFieldName = m2m.mappedBy();
                     Field relatedField = collectionRelatedClass.getDeclaredField(mbyFieldName);
-                    
+
                     JoinTable jt = relatedField.getAnnotation(JoinTable.class);
                     if (jt != null) {
                         ManyToManyType m2mt = new ManyToManyType(field.getName(), field.getType(), collectionRelatedClass, jt, tableType, true);
@@ -553,7 +569,6 @@ public abstract class PowerManager {
                     }
                 }
             } catch (QueryBuilderException | NoSuchFieldException | SecurityException e) {
-                e.printStackTrace();
                 throw new QueryBuilderException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
             }
 
@@ -587,9 +602,10 @@ public abstract class PowerManager {
         return collectionRelatedClass;
     }
 
-    private void addManyToOneType(Field field, List<ManyToOneType> manyToOneTypes, TableType tableType) {
+    private List<JoinColumn> getJoiners(Field field) {
         JoinColumn jcann = field.getAnnotation(JoinColumn.class);
         JoinColumns jcanns = field.getAnnotation(JoinColumns.class);
+
         List<JoinColumn> joiners = null;
         if (jcann != null) {
             joiners = new ArrayList();
@@ -599,11 +615,65 @@ public abstract class PowerManager {
         if (jcanns != null) {
             joiners = Arrays.asList(jcanns.value());
         }
+        return joiners;
+    }
 
-        if (joiners != null && !joiners.isEmpty()) {
-            ManyToOneType m2ot = new ManyToOneType(field.getName(), field.getType(), joiners, tableType);
-            manyToOneTypes.add(m2ot);
+    private void addJoinColumnsType(Field field, List<JoinColumnsType> joinColumnsTypes, TableType tableType) throws QueryBuilderException {
+
+        ManyToOne mto = field.getAnnotation(ManyToOne.class);
+        OneToOne oto = field.getAnnotation(OneToOne.class);
+
+        if (mto == null && oto == null) {
+            return;
         }
+
+        if (mto != null) {
+            List<JoinColumn> joiners = getJoiners(field);
+            JoinColumnsType cjt = new JoinColumnsType(field.getName(), field.getType(), joiners, tableType);
+            joinColumnsTypes.add(cjt);
+            return;
+        }
+
+        if (oto != null) {
+            boolean reverse = oto.mappedBy() != null && !oto.mappedBy().isEmpty();
+            if (reverse) {
+                try {
+                    Class raletedClass = field.getType();
+                    Field relatedField = raletedClass.getDeclaredField(oto.mappedBy());
+                    OneToOne relatedOto = relatedField.getAnnotation(OneToOne.class);
+                    if (relatedOto != null) {
+                        List<JoinColumn> joiners = getJoiners(relatedField);
+                        JoinColumnsType cjt = new JoinColumnsType(field.getName(), field.getType(), joiners, tableType, reverse);
+                        joinColumnsTypes.add(cjt);
+                    }
+                } catch (NoSuchFieldException | SecurityException e) {
+                    throw new QueryBuilderException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
+                }
+            } else {
+                List<JoinColumn> joiners = getJoiners(field);
+                JoinColumnsType cjt = new JoinColumnsType(field.getName(), field.getType(), joiners, tableType);
+                joinColumnsTypes.add(cjt);
+            }
+
+        }
+
+        /*List<JoinColumn> joiners = getJoiners(field);
+        if (joiners != null && !joiners.isEmpty()) {
+
+            ManyToOne mto = field.getAnnotation(ManyToOne.class);
+            OneToOne oto = field.getAnnotation(OneToOne.class);
+            
+            boolean reverse = oto != null && oto.mappedBy() != null && !oto.mappedBy().isEmpty();
+
+            if (mto != null || !reverse) {
+                JoinColumnsType cjt = new JoinColumnsType(field.getName(), field.getType(), joiners, tableType);
+                joinColumnsTypes.add(cjt);
+            } else {
+
+                
+            }
+
+        }*/
     }
 
     public Dialect getDialect() throws QueryBuilderException {
@@ -734,7 +804,7 @@ public abstract class PowerManager {
             List<PowerColumnType> cols = node.getSelectColumns();
             Object child = node.newChild();
             for (PowerColumnType st : cols) {
-                any = any || st.push(child, rs);
+                any = st.push(child, rs) || any;
             }
             if (any) {
                 node.setter(parent, child);
@@ -791,8 +861,8 @@ public abstract class PowerManager {
 
     private JoinNode getJoinNode(TableType tableType, String fieldName, String alias, Connection conn) throws QueryBuilderException, SQLException {
 
-        ManyToOneType m2ot = tableType.getManyToOneType(fieldName);
-        TableType t = getTableType(m2ot.getFieldClass(), conn);
+        JoinColumnsType jcst = tableType.getJoinColumnsType(fieldName);
+        TableType t = getTableType(jcst.getFieldClass(), conn);
 
         List<ColumnType> selects = t.getColumns();
         List<PowerColumnType> selectColumns = selects.stream().map(e -> {
@@ -801,7 +871,7 @@ public abstract class PowerManager {
             return sct;
         }).collect(Collectors.toList());
 
-        JoinNode node = new JoinNode(alias, m2ot);
+        JoinNode node = new JoinNode(alias, jcst);
         node.setChildTableType(t);
         node.setSelectColumns(selectColumns);
 
@@ -920,9 +990,13 @@ public abstract class PowerManager {
             while (colIt.hasNext()) {
                 JoinColumn jc = colIt.next();
 
-                sb.append(alias).append(".").append(jc.name());
+                boolean reverse = node.isReverse();
+                String jcName = reverse ? jc.referencedColumnName() : jc.name();
+                String referencedColumnName = reverse ? jc.name() : jc.referencedColumnName();
+
+                sb.append(alias).append(".").append(jcName);
                 sb.append(" = ");
-                sb.append(node.getAlias()).append(".").append(jc.referencedColumnName());
+                sb.append(node.getAlias()).append(".").append(referencedColumnName);
 
                 if (colIt.hasNext()) {
                     sb.append(" AND ");

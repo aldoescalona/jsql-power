@@ -5,70 +5,37 @@
  */
 package com.telebionica.sql.type;
 
-import com.telebionica.sql.query.JoinNode;
-import com.telebionica.sql.query.QueryBuilderException;
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.persistence.JoinColumn;
 
 /**
  *
  * @author aldo
  */
-public class ManyToOneType {
+public class OneToManyType {
     
     private String fieldName;
     protected Class fieldClass; 
+    protected Class collectionRelatedClass;
     protected List<JoinColumn> joiners;
     protected TableType tableType;
+    
 
-    public ManyToOneType(String fieldName, Class fieldClass, List<JoinColumn> joiners, TableType tableType) {
+    public OneToManyType(String fieldName, Class fieldClass, Class collectionRelatedClass, List<JoinColumn> joiners, TableType tableType, boolean reverse) {
         this.fieldName = fieldName;
         this.fieldClass = fieldClass;
+        this.collectionRelatedClass = collectionRelatedClass;
         this.joiners = joiners;
         this.tableType = tableType;
     }
 
-    public String getFieldName() {
-        return fieldName;
-    }
-
-    public void setFieldName(String fieldName) {
-        this.fieldName = fieldName;
-    }
-
-    public Class getFieldClass() {
-        return fieldClass;
-    }
-
-    public void setFieldClass(Class fieldClass) {
-        this.fieldClass = fieldClass;
-    }
-
-    public List<JoinColumn> getJoiners() {
-        return joiners;
-    }
-
-    public void setJoiners(List<JoinColumn> joiners) {
-        this.joiners = joiners;
-    }
-
-    public TableType getTableType() {
-        return tableType;
-    }
-
-    public void setTableType(TableType tableType) {
-        this.tableType = tableType;
+    public OneToManyType(String fieldName, Class fieldClass, Class relatedClass, List<JoinColumn> joiners, TableType tableType) {
+        this(fieldName, fieldClass, relatedClass, joiners, tableType, false);
     }
     
-    public Object getter(Object b) throws QueryBuilderException {
+    
+    
+    /*public Object getter(Object b) throws QueryBuilderException {
         Object obj = null;
         try {
             Method m = getReadMethod();
@@ -110,5 +77,47 @@ public class ManyToOneType {
             }
         }
         return null;
+    }*/
+
+    public String getFieldName() {
+        return fieldName;
     }
+
+    public void setFieldName(String fieldName) {
+        this.fieldName = fieldName;
+    }
+
+    public Class getFieldClass() {
+        return fieldClass;
+    }
+
+    public void setFieldClass(Class fieldClass) {
+        this.fieldClass = fieldClass;
+    }
+
+    public Class getCollectionRelatedClass() {
+        return collectionRelatedClass;
+    }
+
+    public void setCollectionRelatedClass(Class collectionRelatedClass) {
+        this.collectionRelatedClass = collectionRelatedClass;
+    }
+
+    public List<JoinColumn> getJoiners() {
+        return joiners;
+    }
+
+    public void setJoiners(List<JoinColumn> joiners) {
+        this.joiners = joiners;
+    }
+
+    public TableType getTableType() {
+        return tableType;
+    }
+
+    public void setTableType(TableType tableType) {
+        this.tableType = tableType;
+    }
+
+    
 }
