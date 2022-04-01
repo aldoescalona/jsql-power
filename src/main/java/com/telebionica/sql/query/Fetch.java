@@ -82,5 +82,9 @@ public class Fetch<F> {
         return this;
     }
     
-    
+     public Fetch<F> addOrder(Order order) {
+        orders.add(order);
+        return this;
+    }
+
 }

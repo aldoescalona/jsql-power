@@ -11,10 +11,24 @@ import java.util.List;
  *
  * @author aldo
  */
-public class RootParametrizedQuery extends ParametrizedQuery {
+public class SelectParametrizedQuery<T> extends ParametrizedQuery {
 
-    
+    private Class<T> targetClass;
     private List<CollectionParametrizedQuery> fetchs;
+
+    public SelectParametrizedQuery(Class targetClass) {
+        this.targetClass = targetClass;
+    }
+
+    public Class<T> getTargetClass() {
+        return targetClass;
+    }
+
+    public void setTargetClass(Class<T> targetClass) {
+        this.targetClass = targetClass;
+    }
+    
+    
     
     public List<CollectionParametrizedQuery> getFetchs() {
         return fetchs;
@@ -28,5 +42,4 @@ public class RootParametrizedQuery extends ParametrizedQuery {
         CollectionParametrizedQuery ct = fetchs.stream().filter(e -> e.getCollectionFieldName().equals(id)).findAny().orElse(null);
         return ct;
     }
-
 }

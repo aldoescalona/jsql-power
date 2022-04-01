@@ -21,6 +21,7 @@ public class TableType {
     private List<ColumnType> columns;
     private List<JoinColumnsType> joinColumns;
     private List<ManyToManyType> manyToManyTypes;
+    private List<JoinColumnsType> oneToManyTypes;
     
 
     public TableType(String name, Class entityClass) {
@@ -85,8 +86,14 @@ public class TableType {
     public void setManyToManyTypes(List<ManyToManyType> manyToManyTypes) {
         this.manyToManyTypes = manyToManyTypes;
     }
-    
-    
+
+    public List<JoinColumnsType> getOneToManyTypes() {
+        return oneToManyTypes;
+    }
+
+    public void setOneToManyTypes(List<JoinColumnsType> oneToManyTypes) {
+        this.oneToManyTypes = oneToManyTypes;
+    }
     
     public ColumnType getFieldColumnType(String fieldName){
         ColumnType ct = columns.stream().filter(e->e.getFieldName().equals(fieldName)).findAny().orElse(null);
@@ -101,6 +108,11 @@ public class TableType {
     public ManyToManyType getManyToManyType(String fieldName){
         ManyToManyType m2mt = manyToManyTypes.stream().filter(e-> e.getFieldName().equals(fieldName)).findAny().orElse(null);
         return m2mt;
+    }
+    
+    public JoinColumnsType getOneToManyType(String fieldName){
+        JoinColumnsType jct = oneToManyTypes.stream().filter(e-> e.getFieldName().equals(fieldName)).findAny().orElse(null);
+        return jct;
     }
     
     public List<ColumnType> getIdColumns(){

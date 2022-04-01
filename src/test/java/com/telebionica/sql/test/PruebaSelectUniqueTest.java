@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaSelectListTest {
+public class PruebaSelectUniqueTest {
 
     
     @Test
@@ -28,18 +28,18 @@ public class PruebaSelectListTest {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query query = pm.createQuery();
+            Query<Prueba> query = pm.createQuery();
 
 
             query.schema("RST0").
                     select().
                     from(Prueba.class, "e").
                     fetch("itemPruebaList", "it").
-                    where(Predicates.eq("e.id", 6));
+                    where(Predicates.between("e.id", 1, 6));
                     
-            List<Factura> list = query.list();
+            Prueba prueba = query.unique();
             
-            System.out.println(" LIST: " + list);
+            System.out.println(" UNICO: " + prueba);
             
         } catch (Exception e) {
             e.printStackTrace();

@@ -46,12 +46,12 @@ public class SetColumnValue extends SetForUpdate{
 
     @Override
     public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
-        fieldColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery(), rootJoinNodes, conn);
+        fieldColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery().getEntityClass(), getQuery().getRootAlias(), rootJoinNodes, conn);
         if(fieldColumnType == null){
           throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
         
-        fieldValueColumnType = getQuery().getPowerManager().getAliasColumnType(fieldValue, getQuery(), rootJoinNodes, conn);
+        fieldValueColumnType = getQuery().getPowerManager().getAliasColumnType(fieldValue, getQuery().getEntityClass(), getQuery().getRootAlias(), rootJoinNodes, conn);
         if(fieldValueColumnType == null){
           throw new QueryBuilderException("No existe el atributo " + fieldValue);
         }

@@ -14,6 +14,22 @@ public class Predicates {
     public static Eq eq(String colname, Object value) {
         return new Eq(colname, value);
     }
+    
+    public static Ge ge(String colname, Object value) {
+        return new Ge(colname, value);
+    }
+    
+    public static Gt gt(String colname, Object value) {
+        return new Gt(colname, value);
+    }
+    
+    public static Le le(String colname, Object value) {
+        return new Le(colname, value);
+    }
+    
+    public static Lt lt(String colname, Object value) {
+        return new Lt(colname, value);
+    }
 
     public static Comparison compare(String colname, Comparison.COMPARISON_OPERATOR operator, Object value) {
         return new Comparison(colname, operator, value);
@@ -38,4 +54,6 @@ public class Predicates {
     public static RawPredicate rawPredicate(String raw) {
         return new RawPredicate(raw);
     }
+    
+    
 }

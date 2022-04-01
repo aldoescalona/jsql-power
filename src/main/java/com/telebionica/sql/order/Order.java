@@ -5,13 +5,7 @@
  */
 package com.telebionica.sql.order;
 
-import com.telebionica.sql.data.PowerColumnType;
-import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.Query;
-import com.telebionica.sql.query.QueryBuilderException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  *
@@ -19,7 +13,7 @@ import java.util.List;
  */
 public class Order {
 
-    private Query query;
+    // private Query query;
     private String fieldName;
     private String order;
 
@@ -35,21 +29,6 @@ public class Order {
     public String getOrder() {
         return order;
     }
-
-    public Query getQuery() {
-        return query;
-    }
-
-    public void setQuery(Query query) {
-        this.query = query;
-    }
-
-    /*public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
-        aliasColumnType = query.getPowerManager().getAliasColumnType(fieldName, query, rootJoinNodes, conn);
-        if (aliasColumnType == null) {
-            throw new QueryBuilderException("No existe el atributo " + fieldName);
-        }
-    }*/
 
     public String getOrderStatement(String fullColumnName) {
         return String.format("%s %s", fullColumnName, order);

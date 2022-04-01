@@ -18,33 +18,27 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaSelectListTest {
-
+public class PruebaRefreshTest {
     
     @Test
     public void test() {
-
+        
         try {
-
+            
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query query = pm.createQuery();
-
-
-            query.schema("RST0").
-                    select().
-                    from(Prueba.class, "e").
-                    fetch("itemPruebaList", "it").
-                    where(Predicates.eq("e.id", 6));
-                    
-            List<Factura> list = query.list();
             
-            System.out.println(" LIST: " + list);
+            Prueba p = new Prueba();
+            p.setId(1L);
+            
+            pm.refresh("RST0", p);
+            
+            System.out.println(" P: " + p);
             
         } catch (Exception e) {
             e.printStackTrace();
         }
-
+        
         String hello = null;
         Assertions.assertNull(hello);
     }

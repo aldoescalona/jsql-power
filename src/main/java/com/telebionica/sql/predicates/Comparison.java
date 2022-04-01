@@ -50,7 +50,7 @@ public class Comparison extends Predicate {
     @Override
     public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException{
         types = new ArrayList();
-        aliasColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery(), rootJoinNodes, conn);
+        aliasColumnType = getQuery().getPowerManager().getAliasColumnType(fieldName, getQuery().getEntityClass(), getQuery().getRootAlias(), rootJoinNodes, conn);
         if(aliasColumnType == null){
           throw new QueryBuilderException("No existe el atributo " + fieldName);
         }

@@ -108,13 +108,21 @@ public class Query<E> {
         return this;
     }
     
-    public Query<E> fetch(String collectionFieldPath, String alias) throws QueryBuilderException, SQLException {
+    public Query<E> fetch(Fetch fetch) throws QueryBuilderException {
+        if (rootAlias == null) {
+            throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
+        }
+        fetchs.add(fetch);
+        return this;
+    }
+    
+    public Query<E> fetch(String collectionField, String alias) throws QueryBuilderException {
 
         if (rootAlias == null) {
             throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
         }
 
-        fetchs.add(new Fetch(collectionFieldPath, alias));
+        fetchs.add(new Fetch(collectionField, alias));
         return this;
     }
 
@@ -131,7 +139,7 @@ public class Query<E> {
     }
 
     public Query addOrder(Order order) {
-        order.setQuery(this);
+        // order.setQuery(this);
         orders.add(order);
         return this;
     }
@@ -174,12 +182,12 @@ public class Query<E> {
         return powerManager.count(this);
     }
 
-    public int execute() throws Exception {
+    public int execute() throws SQLException, QueryBuilderException {
         return powerManager.execute(this);
     }
 
-    public E unique() {
-        return (E) new Object();
+    public E unique() throws SQLException, QueryBuilderException{
+        return powerManager.unique(this);
     }
 
     public String getSchema() {
@@ -263,8 +271,6 @@ public class Query<E> {
     public void setFetchs(List<Fetch> fetchs) {
         this.fetchs = fetchs;
     }
-
-    
     
     public List<Predicate> getPredicates() {
         return predicates;

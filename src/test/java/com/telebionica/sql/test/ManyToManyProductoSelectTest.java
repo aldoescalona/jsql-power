@@ -4,6 +4,7 @@ import com.telebionica.risto.batch.model.Producto;
 import com.telebionica.risto.batch.model.Proveedor;
 import com.telebionica.sql.order.Order;
 import com.telebionica.sql.predicates.Predicates;
+import com.telebionica.sql.query.Fetch;
 import com.telebionica.sql.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
@@ -20,7 +21,6 @@ import org.junit.jupiter.api.Test;
  */
 public class ManyToManyProductoSelectTest {
 
-    
     @Test
     public void producto() {
 
@@ -35,12 +35,11 @@ public class ManyToManyProductoSelectTest {
                     from(Producto.class, "e").
                     fetch("proveedorList", "pv").
                     where(Predicates.rawPredicate("e.nombre like '%Coca-Cola mediana Caja 24pzs%'"));
-            
+
             List<Producto> list = query.list();
-            
-            
+
             System.out.println(" LIST: " + list);
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -48,7 +47,7 @@ public class ManyToManyProductoSelectTest {
         String hello = null;
         Assertions.assertNull(hello);
     }
-    
+
     @Test
     public void proveedor() {
 
@@ -58,19 +57,20 @@ public class ManyToManyProductoSelectTest {
             pm.setMetadaSchema("RSTX");
             Query query = pm.createQuery();
 
+            Fetch<Producto> fecth = new Fetch("productoList", "pd");
+            fecth.addOrder(Order.asc("pd.nombre"));
 
             query.schema("RST0").
                     select().
                     from(Proveedor.class, "e").
-                    fetch("productoList", "pd").
+                    // fetch("productoList", "pd").
+                    fetch(fecth).
                     where(Predicates.rawPredicate("e.nombre like '%coca%'"));
-            
+
             List<Producto> list = query.list();
-            
+
             System.out.println(" LIST: " + list);
-            
-            
-            
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -78,6 +78,5 @@ public class ManyToManyProductoSelectTest {
         String hello = null;
         Assertions.assertNull(hello);
     }
-    
-    
+
 }
