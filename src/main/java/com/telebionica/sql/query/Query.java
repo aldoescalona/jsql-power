@@ -36,9 +36,9 @@ public class Query<E> {
     private Integer maxResults;
 
     private List<Join> joins;
+    private List<Fetch> fetchs;
     private List<Predicate> predicates;
     private List<SetForUpdate> sets;
-
 
     public Query(PowerManager powerManager) throws SQLException, QueryBuilderException {
         this.powerManager = powerManager;
@@ -76,6 +76,7 @@ public class Query<E> {
         this.predicates = new ArrayList();
         this.sets = new ArrayList();
         this.joins = new ArrayList();
+        this.fetchs = new ArrayList();
 
         return this;
     }
@@ -104,6 +105,16 @@ public class Query<E> {
 
         joins.add(new Join(fieldPath, alias, jointype));
 
+        return this;
+    }
+    
+    public Query<E> fetch(String collectionFieldPath, String alias) throws QueryBuilderException, SQLException {
+
+        if (rootAlias == null) {
+            throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
+        }
+
+        fetchs.add(new Fetch(collectionFieldPath, alias));
         return this;
     }
 
@@ -245,6 +256,16 @@ public class Query<E> {
         this.joins = joins;
     }
 
+    public List<Fetch> getFetchs() {
+        return fetchs;
+    }
+
+    public void setFetchs(List<Fetch> fetchs) {
+        this.fetchs = fetchs;
+    }
+
+    
+    
     public List<Predicate> getPredicates() {
         return predicates;
     }

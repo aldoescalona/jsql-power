@@ -1,15 +1,12 @@
 package com.telebionica.sql.test;
 
-import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.risto.batch.model.Producto;
 import com.telebionica.risto.batch.model.Proveedor;
-import com.telebionica.sql.power.ItemPrueba;
-import com.telebionica.sql.power.Prueba;
+import com.telebionica.sql.order.Order;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /*
@@ -25,7 +22,6 @@ public class ManyToManyProductoSelectTest {
 
     
     @Test
-    // @Disabled
     public void producto() {
 
         try {
@@ -34,13 +30,14 @@ public class ManyToManyProductoSelectTest {
             pm.setMetadaSchema("RSTX");
             Query query = pm.createQuery();
 
-
             query.schema("RST0").
                     select().
                     from(Producto.class, "e").
-                    where(Predicates.rawPredicate("e.nombre like '%pollo%'"));
+                    fetch("proveedorList", "pv").
+                    where(Predicates.rawPredicate("e.nombre like '%Coca-Cola mediana Caja 24pzs%'"));
             
             List<Producto> list = query.list();
+            
             
             System.out.println(" LIST: " + list);
             
@@ -65,11 +62,14 @@ public class ManyToManyProductoSelectTest {
             query.schema("RST0").
                     select().
                     from(Proveedor.class, "e").
-                    where(Predicates.rawPredicate("e.nombre like '%pollo%'"));
+                    fetch("productoList", "pd").
+                    where(Predicates.rawPredicate("e.nombre like '%coca%'"));
             
             List<Producto> list = query.list();
             
             System.out.println(" LIST: " + list);
+            
+            
             
         } catch (Exception e) {
             e.printStackTrace();
@@ -78,4 +78,6 @@ public class ManyToManyProductoSelectTest {
         String hello = null;
         Assertions.assertNull(hello);
     }
+    
+    
 }

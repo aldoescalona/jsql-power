@@ -24,14 +24,18 @@ public class JoinNode {
     private String alias;
     private JoinColumnsType joinColumnsType;
     private TableType childTableType;
-    private List<PowerColumnType> selectColumns = new ArrayList();
+    private List<PowerColumnType> selectColumns;
+    
     private Query.JOINTYPE joinType;
     private List<JoinNode> children = new ArrayList<>();
 
-    public JoinNode(String alias, JoinColumnsType joinColumnsType) {
+    public JoinNode(String alias, JoinColumnsType joinColumnsType, TableType childTableType, List<PowerColumnType> selectColumns) {
         this.alias = alias;
         this.joinColumnsType = joinColumnsType;
+        this.childTableType = childTableType;
+        this.selectColumns = selectColumns;
     }
+
 
     public String getFieldName() {
         return joinColumnsType.getFieldName();

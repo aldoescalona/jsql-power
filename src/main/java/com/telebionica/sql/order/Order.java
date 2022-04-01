@@ -20,8 +20,6 @@ import java.util.List;
 public class Order {
 
     private Query query;
-    private PowerColumnType aliasColumnType;
-
     private String fieldName;
     private String order;
 
@@ -46,15 +44,15 @@ public class Order {
         this.query = query;
     }
 
-    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
+    /*public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException {
         aliasColumnType = query.getPowerManager().getAliasColumnType(fieldName, query, rootJoinNodes, conn);
         if (aliasColumnType == null) {
             throw new QueryBuilderException("No existe el atributo " + fieldName);
         }
-    }
+    }*/
 
-    public String getOrderStatement() {
-        return String.format("%s %s", aliasColumnType.getFullColumnName(), order);
+    public String getOrderStatement(String fullColumnName) {
+        return String.format("%s %s", fullColumnName, order);
     }
 
     public static Asc asc(String colname) {

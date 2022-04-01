@@ -61,10 +61,11 @@ public class FacturaSelectTest {
             query.schema("RST0").
                     select().
                     from(Factura.class, "f").
-                    // left("facturaSustitucion", "fs").
+                    left("facturaSustitucion", "fs").
                     left("emisorFactura", "ef1").
-                    // left("facturaSustitucion.emisorFactura", "ef2").
-                    where(Predicates.eq("f.folioSat", "E52BEAA6-D1E3-4BE3-82FD-304A3A12BA37")).
+                    left("facturaSustitucion.emisorFactura", "ef2").
+                    // where(Predicates.eq("f.folioSat", "E52BEAA6-D1E3-4BE3-82FD-304A3A12BA37")).
+                    where(or).
                     // and(or).
                     addOrder(Order.asc("f.folioSat")).
                     addOrder(Order.desc("f.estado")).
