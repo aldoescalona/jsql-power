@@ -37,6 +37,7 @@ public class ManyToManyProductoSelectTest {
                     where(Predicates.rawPredicate("e.nombre like '%Coca-Cola mediana Caja 24pzs%'"));
 
             List<Producto> list = query.list();
+            
 
             System.out.println(" LIST: " + list);
 
@@ -67,7 +68,14 @@ public class ManyToManyProductoSelectTest {
                     fetch(fecth).
                     where(Predicates.rawPredicate("e.nombre like '%coca%'"));
 
-            List<Producto> list = query.list();
+            List<Proveedor> list = query.list();
+
+            if (!list.isEmpty()) {
+                Proveedor proveedor = list.get(0);
+                List<Producto> rel = proveedor.getProductoList();
+                pm.replace("RST0", list.get(0), "productoList", rel);
+
+            }
 
             System.out.println(" LIST: " + list);
 

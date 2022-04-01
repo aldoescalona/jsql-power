@@ -1,11 +1,6 @@
 package com.telebionica.sql.test;
 
-import com.telebionica.risto.batch.model.Factura;
-import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
-import com.telebionica.sql.predicates.Predicates;
-import com.telebionica.sql.query.Query;
-import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -32,8 +27,11 @@ public class PruebaRefreshTest {
             p.setId(1L);
             
             pm.refresh("RST0", p);
-            
             System.out.println(" P: " + p);
+            
+            Prueba p2 = pm.get("RST0", 2L, Prueba.class);
+            System.out.println(" P: " + p2);
+            
             
         } catch (Exception e) {
             e.printStackTrace();
