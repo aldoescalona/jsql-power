@@ -5,8 +5,6 @@
  */
 package com.telebionica.sql.power;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.dialect.Dialect;
 import com.telebionica.sql.join.Join;
@@ -34,7 +32,6 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -52,6 +49,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -225,15 +223,89 @@ public abstract class PowerManager {
                     }
                 }
             }
+        } catch (SQLException ex) {
+            String q = logs(query, insertParams);
+            throw new QueryBuilderException(q, ex);
         } finally {
             if (pstm != null) {
                 pstm.close();
             }
         }
-
-        System.out.println(" INSERT " + query);
-
+        // System.out.println(" INSERT " + query);
         return 0;
+    }
+
+    public <E> List<E> transform(String query, Class<E> target, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Connection conn) throws QueryBuilderException, SQLException {
+
+        TableType tableType = getTableType(target);
+
+        List<PowerColumnType> columns = new ArrayList();
+
+        List<E> list = new ArrayList();
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+
+            if (fun != null) {
+                fun.apply(pstmt);
+            }
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                ResultSetMetaData md = rs.getMetaData();
+                int columnCount = md.getColumnCount();
+                for (int index = 1; index <= columnCount; index++) {
+                    String columnName = md.getColumnLabel(index);
+
+                    ColumnType ct = null;
+                    if (transformtype == null || transformtype == TRANSFORMTYPE.COLUMNNAME) {
+                        ct = tableType.getColumnType(columnName);
+                    } else if (transformtype == TRANSFORMTYPE.FIELDNAME) {
+                        ct = tableType.getFieldColumnType(columnName);
+                    }
+
+                    if (ct != null) {
+                        PowerColumnType pw = new PowerColumnType(ct);
+                        pw.setColumnAlias(columnName);
+                        columns.add(pw);
+                    }
+                }
+
+                try {
+                    while (rs.next()) {
+                        E instance = target.getConstructor().newInstance();
+                        for (PowerColumnType pct : columns) {
+                            pct.push(instance, rs);
+                        }
+                        list.add(instance);
+                    }
+                } catch (QueryBuilderException | IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException | SQLException ex) {
+                    throw new QueryBuilderException(ex);
+                }
+            }
+        }
+        return list;
+    }
+
+    public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Class<E> target) throws QueryBuilderException, SQLException {
+        try (Connection conn = getConnection()) {
+            return transform(query, target, transformtype, null, conn);
+        }
+    }
+
+    public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Class<E> target) throws QueryBuilderException, SQLException {
+        try (Connection conn = getConnection()) {
+            return transform(query, target, transformtype, fun, conn);
+        }
+    }
+
+    public <E> List<E> transform(String query, Function<PreparedStatement, Void> fun, Class<E> target) throws QueryBuilderException, SQLException {
+        try (Connection conn = getConnection()) {
+            return transform(query, target, null, fun, conn);
+        }
+    }
+
+    public <E> List<E> transform(String query, Class<E> target) throws QueryBuilderException, SQLException {
+        try (Connection conn = getConnection()) {
+            return transform(query, target, null, null, conn);
+        }
     }
 
     private Generator getGenerator(GeneratorType gt) throws QueryBuilderException {
@@ -734,7 +806,7 @@ public abstract class PowerManager {
                         st.push(e, rs);
                     }
                 }
-            } catch (Exception ex ) {
+            } catch (Exception ex) {
                 throw new QueryBuilderException(ex);
             }
         }
@@ -1962,5 +2034,19 @@ public abstract class PowerManager {
 
     public void setMetadaSchema(String metadaSchema) {
         this.metadaSchema = metadaSchema;
+    }
+
+    private String logs(String query, List<PowerColumnType> params) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(query);
+
+        if (params != null && params.isEmpty()) {
+            sb.append("\n");
+            String vals = params.stream().map(p -> p.getValue() == null ? "" : p.getValue().toString()).collect(Collectors.joining(","));
+            sb.append(vals);
+        }
+
+        return sb.toString();
     }
 }
