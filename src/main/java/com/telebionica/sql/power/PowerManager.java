@@ -231,7 +231,7 @@ public abstract class PowerManager {
                 pstm.close();
             }
         }
-        // System.out.println(" INSERT " + query);
+        
         return 0;
     }
 
@@ -280,6 +280,9 @@ public abstract class PowerManager {
                     throw new QueryBuilderException(ex);
                 }
             }
+        }catch(SQLException ex){
+            String q = logs(query, fun);
+            throw new QueryBuilderException(q, ex);
         }
         return list;
     }
@@ -316,7 +319,7 @@ public abstract class PowerManager {
                 Class<Generator> gclass = (Class<Generator>) Class.forName(gt.getGenerator());
                 gen = gclass.getConstructor().newInstance();
                 generatorMap.put(gt.getName(), gen);
-            } catch (Exception ex) {
+            } catch (ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
                 Logger.getLogger(PowerManager.class.getName()).log(Level.SEVERE, null, ex);
                 throw new QueryBuilderException("Generador " + gt.getGenerator() + " invalido", ex);
             }
@@ -378,7 +381,7 @@ public abstract class PowerManager {
             }
         }
 
-        System.out.println(" DELETE QUERY: " + deletesb.toString());
+        // System.out.println(" DELETE QUERY: " + deletesb.toString());
 
         StringBuilder insertsb = new StringBuilder("INSERT INTO ");
 
@@ -427,6 +430,9 @@ public abstract class PowerManager {
                 powerValue.powerStatement(delStmt, i++);
             }
             delStmt.executeUpdate();
+        } catch(SQLException ex){
+            String q = logs(deletesb.toString(), deleteParams);
+            throw new QueryBuilderException(q, ex);
         }
 
         try (PreparedStatement insertStmt = conn.prepareStatement(insertsb.toString())) {
@@ -443,8 +449,11 @@ public abstract class PowerManager {
                 insertStmt.addBatch();
             }
             insertStmt.executeBatch();
+        } catch(SQLException ex){
+            String q = logs(insertsb.toString(), fullParams);
+            throw new QueryBuilderException(q, ex);
         }
-        System.out.println(" INSRET QUERY: " + insertsb.toString());
+        // System.out.println(" INSRET QUERY: " + insertsb.toString());
 
         return 0;
     }
@@ -546,7 +555,7 @@ public abstract class PowerManager {
 
         String query = sb.toString();
 
-        System.out.println(" UPDATE QUERY: " + query);
+        // System.out.println(" UPDATE QUERY: " + query);
         int c;
         try (PreparedStatement pstm = conn.prepareStatement(query)) {
 
@@ -555,6 +564,9 @@ public abstract class PowerManager {
                 powerValue.powerStatement(pstm, i++);
             }
             c = pstm.executeUpdate();
+        } catch(SQLException ex){
+            String q = logs(query, orderParams);
+            throw new QueryBuilderException(q, ex);
         }
 
         return c;
@@ -616,7 +628,7 @@ public abstract class PowerManager {
 
         String queryString = sb.toString();
 
-        System.out.println(" DELETE QUERY: " + queryString);
+        // System.out.println(" DELETE QUERY: " + queryString);
         int c;
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
@@ -625,6 +637,9 @@ public abstract class PowerManager {
                 powerValue.powerStatement(pstm, i++);
             }
             c = pstm.executeUpdate();
+        } catch(SQLException ex){
+            String q = logs(queryString, orderParams);
+            throw new QueryBuilderException(q, ex);
         }
         return c;
     }
@@ -703,7 +718,7 @@ public abstract class PowerManager {
 
         String queryString = sb.toString();
 
-        System.out.println(" refresh QUERY: " + queryString);
+        // System.out.println(" refresh QUERY: " + queryString);
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
@@ -717,6 +732,9 @@ public abstract class PowerManager {
                     }
                 }
             }
+        } catch(SQLException ex){
+            String q = logs(queryString, whereParams);
+            throw new QueryBuilderException(q, ex);
         }
     }
 
@@ -790,7 +808,7 @@ public abstract class PowerManager {
 
         String queryString = sb.toString();
 
-        System.out.println(" refresh QUERY: " + queryString);
+        // System.out.println(" refresh QUERY: " + queryString);
         E e = null;
 
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
@@ -809,7 +827,11 @@ public abstract class PowerManager {
             } catch (Exception ex) {
                 throw new QueryBuilderException(ex);
             }
+        } catch(SQLException ex){
+            String q = logs(queryString, whereParams);
+            throw new QueryBuilderException(q, ex);
         }
+        
         return e;
     }
 
@@ -1160,6 +1182,9 @@ public abstract class PowerManager {
                     k++;
                 }
             }
+        } catch(SQLException ex){
+            String q = logs(queryString, parametrizedQuery.getParams());
+            throw new QueryBuilderException(q, ex);
         }
 
         // Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
@@ -1195,6 +1220,9 @@ public abstract class PowerManager {
                 }
             }
 
+        } catch(SQLException ex){
+            String q = logs(pq.getQuery(), pq.getParams());
+            throw new QueryBuilderException(q, ex);
         }
         return fetchList;
     }
@@ -1253,6 +1281,9 @@ public abstract class PowerManager {
                     c = rs.getInt(1);
                 }
             }
+        } catch(SQLException ex){
+            String q = logs(pq.getQuery(), pq.getParams());
+            throw new QueryBuilderException(q, ex);
         }
         return c;
     }
@@ -1275,6 +1306,9 @@ public abstract class PowerManager {
                 powerValue.powerStatement(pstm, i++);
             }
             c = pstm.executeUpdate();
+        } catch(SQLException ex){
+            String q = logs(pq.getQuery(), pq.getParams());
+            throw new QueryBuilderException(q, ex);
         }
 
         return c;
@@ -1650,8 +1684,8 @@ public abstract class PowerManager {
         pq.setJoinNodes(rootJoinNodes);
         pq.setFetchs(fetchParametrizedQuerys);
 
-        System.out.println("ROOT QUERY: " + queryString);
-        System.out.println("");
+        // System.out.println("ROOT QUERY: " + queryString);
+        // System.out.println("");
         return pq;
     }
 
@@ -1783,8 +1817,8 @@ public abstract class PowerManager {
             pq.setParams(params);
             pq.setSelectColumns(selectColumns);
             pq.setJoinNodes(rootJoinNodes);
-            System.out.println("FETH QUERY: " + queryString);
-            System.out.println("");
+            // System.out.println("FETH QUERY: " + queryString);
+            // System.out.println("");
             return pq;
         }
 
@@ -1885,8 +1919,8 @@ public abstract class PowerManager {
             pq.setParams(params);
             pq.setSelectColumns(selectColumns);
             pq.setJoinNodes(rootJoinNodes);
-            System.out.println("FETH QUERY: " + queryString);
-            System.out.println("");
+            // System.out.println("FETH QUERY: " + queryString);
+            // System.out.println("");
             return pq;
         }
 
@@ -2043,9 +2077,20 @@ public abstract class PowerManager {
 
         if (params != null && params.isEmpty()) {
             sb.append("\n");
-            String vals = params.stream().map(p -> p.getValue() == null ? "" : p.getValue().toString()).collect(Collectors.joining(","));
+            String vals = params.stream().map(p -> p.getValue() == null ? "[NULL]" : p.getValue().toString()).collect(Collectors.joining(","));
             sb.append(vals);
         }
+
+        return sb.toString();
+    }
+    
+    private String logs(String query, Function<PreparedStatement, Void> fun) {
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(query);
+
+        sb.append("Function: ");
+        sb.append(fun.toString());
 
         return sb.toString();
     }
