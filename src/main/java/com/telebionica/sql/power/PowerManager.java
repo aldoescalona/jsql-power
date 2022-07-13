@@ -75,9 +75,12 @@ import javax.persistence.Table;
 public abstract class PowerManager {
 
     private String metadaSchema;
+    private boolean debugSQL = Boolean.FALSE;
     private final Map<Class, TableType> tableTypeMap = new HashMap<>();
     private final Map<String, Generator> generatorMap = new HashMap<>();
     private Dialect dialect = null;
+    
+    private static final Logger logger = Logger.getLogger(PowerManager.class.getName());
 
     public abstract Connection getConnection() throws SQLException;
 
@@ -198,6 +201,11 @@ public abstract class PowerManager {
         sb.append(")");
 
         String query = sb.toString();
+        
+        if(debugSQL){
+            String q = logs(query, insertParams);
+            logger.log(Level.INFO, q);
+        }
 
         PreparedStatement pstm = null;
         try {
@@ -423,6 +431,11 @@ public abstract class PowerManager {
         insertsb.append(" ) VALUES(");
         insertsb.append(sbvalues);
         insertsb.append(")");
+        
+        if(debugSQL){
+            String q = logs(deletesb.toString(), deleteParams);
+            logger.log(Level.INFO, q);
+        }
 
         try (PreparedStatement delStmt = conn.prepareStatement(deletesb.toString())) {
             int i = 1;
@@ -435,6 +448,10 @@ public abstract class PowerManager {
             throw new QueryBuilderException(q, ex);
         }
 
+        if(debugSQL){
+            String q = logs(insertsb.toString(), fullParams);
+            logger.log(Level.INFO, q);
+        }
         try (PreparedStatement insertStmt = conn.prepareStatement(insertsb.toString())) {
 
             for (E obj : list) {
@@ -629,6 +646,10 @@ public abstract class PowerManager {
         String queryString = sb.toString();
 
         // System.out.println(" DELETE QUERY: " + queryString);
+        if(debugSQL){
+            String q = logs(queryString, orderParams);
+            logger.log(Level.INFO, q);
+        }
         int c;
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
@@ -717,6 +738,11 @@ public abstract class PowerManager {
         }
 
         String queryString = sb.toString();
+        
+        if(debugSQL){
+            String q = logs(queryString, whereParams);
+            logger.log(Level.INFO, q);
+        }
 
         // System.out.println(" refresh QUERY: " + queryString);
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
@@ -808,6 +834,10 @@ public abstract class PowerManager {
 
         String queryString = sb.toString();
 
+        if(debugSQL){
+            String q = logs(queryString, whereParams);
+            logger.log(Level.INFO, q);
+        }
         // System.out.println(" refresh QUERY: " + queryString);
         E e = null;
 
@@ -1139,6 +1169,11 @@ public abstract class PowerManager {
         SelectParametrizedQuery<E> parametrizedQuery = (SelectParametrizedQuery) dryRun(query, conn);
         String queryString = parametrizedQuery.getQuery();
 
+        if(debugSQL){
+            String q = logs(queryString, parametrizedQuery.getParams());
+            logger.log(Level.INFO, q);
+        }
+        
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
@@ -1194,6 +1229,10 @@ public abstract class PowerManager {
     }
 
     private List getCollection(Object rootInstance, CollectionParametrizedQuery pq, Connection conn) throws QueryBuilderException, SQLException {
+        if(debugSQL){
+            String q = logs(pq.getQuery(), pq.getParams());
+            logger.log(Level.INFO, q);
+        }
         List fetchList = new ArrayList();
         try (PreparedStatement pstm = conn.prepareStatement(pq.getQuery())) {
 
@@ -1269,6 +1308,11 @@ public abstract class PowerManager {
 
         ParametrizedQuery pq = dryRun(query, true, conn);
         String queryString = pq.getQuery();
+        if(debugSQL){
+            String q = logs(queryString, pq.getParams());
+            logger.log(Level.INFO, q);
+        }
+        
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
@@ -1299,6 +1343,11 @@ public abstract class PowerManager {
         int c;
         ParametrizedQuery pq = dryRun(query, conn);
         String queryString = pq.getQuery();
+        
+        if(debugSQL){
+            String q = logs(queryString, pq.getParams());
+            logger.log(Level.INFO, q);
+        }
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
@@ -2070,14 +2119,22 @@ public abstract class PowerManager {
         this.metadaSchema = metadaSchema;
     }
 
+    public boolean isDebugSQL() {
+        return debugSQL;
+    }
+
+    public void setDebugSQL(boolean debugSQL) {
+        this.debugSQL = debugSQL;
+    }
+    
     private String logs(String query, List<PowerColumnType> params) {
 
         StringBuilder sb = new StringBuilder();
         sb.append(query);
 
-        if (params != null && params.isEmpty()) {
-            sb.append("\n");
-            String vals = params.stream().map(p -> p.getValue() == null ? "[NULL]" : p.getValue().toString()).collect(Collectors.joining(","));
+        if (params != null && !params.isEmpty()) {
+            sb.append("\n  ");
+            String vals = params.stream().map(p -> p.getValue() == null ? "[NULL]" : p.getValue().toString()).collect(Collectors.joining(", "));
             sb.append(vals);
         }
 
