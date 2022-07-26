@@ -15,7 +15,7 @@ import com.telebionica.sql.query.Fetch;
 import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.ParametrizedQuery;
 import com.telebionica.sql.query.Query;
-import com.telebionica.sql.query.QueryBuilderException;
+import com.telebionica.sql.query.PowerQueryException;
 import com.telebionica.sql.query.SelectParametrizedQuery;
 import com.telebionica.sql.setu.SetForUpdate;
 import com.telebionica.sql.type.ColumnType;
@@ -79,27 +79,29 @@ public abstract class PowerManager {
     private final Map<Class, TableType> tableTypeMap = new HashMap<>();
     private final Map<String, Generator> generatorMap = new HashMap<>();
     private Dialect dialect = null;
-    
+
     private static final Logger logger = Logger.getLogger(PowerManager.class.getName());
 
-    public abstract Connection getConnection() throws SQLException;
+    public abstract Connection getConnection() throws PowerQueryException;
 
-    public <E> Query createQuery() throws SQLException, QueryBuilderException {
+    public <E> Query createQuery() throws PowerQueryException {
         Query<E> query = new Query(this);
         return query;
     }
 
-    public int insert(Object e) throws SQLException, QueryBuilderException {
+    public int insert(Object e) throws PowerQueryException {
         return insert(null, e);
     }
 
-    public int insert(String schema, Object e) throws SQLException, QueryBuilderException {
+    public int insert(String schema, Object e) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return insert(schema, e, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public int insert(String schema, Object e, Connection conn) throws SQLException, QueryBuilderException {
+    public int insert(String schema, Object e, Connection conn) throws PowerQueryException {
 
         Class entityClass = e.getClass();
         TableType tableType = this.getTableType(entityClass, conn);
@@ -130,6 +132,8 @@ public abstract class PowerManager {
                             secpow.getter(e);
                             insertParams.add(secpow);
                         }
+                    } catch (SQLException ex) {
+                        throw new PowerQueryException(seqQueryString, ex);
                     }
                 } else if (gt.getStrategy() == GenerationType.IDENTITY) {
 
@@ -201,8 +205,8 @@ public abstract class PowerManager {
         sb.append(")");
 
         String query = sb.toString();
-        
-        if(debugSQL){
+
+        if (debugSQL) {
             String q = logs(query, insertParams);
             logger.log(Level.INFO, q);
         }
@@ -233,17 +237,21 @@ public abstract class PowerManager {
             }
         } catch (SQLException ex) {
             String q = logs(query, insertParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         } finally {
             if (pstm != null) {
-                pstm.close();
+                try {
+                    pstm.close();
+                } catch (Exception ex) {
+                    throw new PowerQueryException(ex);
+                }
             }
         }
-        
+
         return 0;
     }
 
-    public <E> List<E> transform(String query, Class<E> target, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Connection conn) throws QueryBuilderException, SQLException {
+    public <E> List<E> transform(String query, Class<E> target, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Connection conn) throws PowerQueryException {
 
         TableType tableType = getTableType(target);
 
@@ -284,42 +292,50 @@ public abstract class PowerManager {
                         }
                         list.add(instance);
                     }
-                } catch (QueryBuilderException | IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException | SQLException ex) {
-                    throw new QueryBuilderException(ex);
+                } catch (PowerQueryException | IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException | SQLException ex) {
+                    throw new PowerQueryException(ex);
                 }
             }
-        }catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(query, fun);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
         return list;
     }
 
-    public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Class<E> target) throws QueryBuilderException, SQLException {
+    public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Class<E> target) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return transform(query, target, transformtype, null, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Class<E> target) throws QueryBuilderException, SQLException {
+    public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Class<E> target) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return transform(query, target, transformtype, fun, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public <E> List<E> transform(String query, Function<PreparedStatement, Void> fun, Class<E> target) throws QueryBuilderException, SQLException {
+    public <E> List<E> transform(String query, Function<PreparedStatement, Void> fun, Class<E> target) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return transform(query, target, null, fun, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public <E> List<E> transform(String query, Class<E> target) throws QueryBuilderException, SQLException {
+    public <E> List<E> transform(String query, Class<E> target) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return transform(query, target, null, null, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    private Generator getGenerator(GeneratorType gt) throws QueryBuilderException {
+    private Generator getGenerator(GeneratorType gt) throws PowerQueryException {
 
         Generator gen = generatorMap.get(gt.getName());
         if (gen == null) {
@@ -329,20 +345,22 @@ public abstract class PowerManager {
                 generatorMap.put(gt.getName(), gen);
             } catch (ClassNotFoundException | IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
                 Logger.getLogger(PowerManager.class.getName()).log(Level.SEVERE, null, ex);
-                throw new QueryBuilderException("Generador " + gt.getGenerator() + " invalido", ex);
+                throw new PowerQueryException("Generador " + gt.getGenerator() + " invalido", ex);
             }
         }
 
         return gen;
     }
 
-    public <E> int replace(String schema, Object ent, String manyToManyField, List<E> list) throws SQLException, QueryBuilderException {
+    public <E> int replace(String schema, Object ent, String manyToManyField, List<E> list) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return replace(schema, ent, manyToManyField, list, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public <E> int replace(String schema, Object ent, String manyToManyField, List<E> list, Connection conn) throws SQLException, QueryBuilderException {
+    public <E> int replace(String schema, Object ent, String manyToManyField, List<E> list, Connection conn) throws PowerQueryException {
 
         if (ent == null) {
             return 0;
@@ -353,7 +371,7 @@ public abstract class PowerManager {
 
         ManyToManyType m2mt = tableType.getManyToManyType(manyToManyField);
         if (m2mt == null) {
-            throw new QueryBuilderException("No esta el atributo " + manyToManyField + " en la clase " + entityClass.getName());
+            throw new PowerQueryException("No esta el atributo " + manyToManyField + " en la clase " + entityClass.getName());
         }
 
         JoinTable jt = m2mt.getJoinTable();
@@ -390,7 +408,6 @@ public abstract class PowerManager {
         }
 
         // System.out.println(" DELETE QUERY: " + deletesb.toString());
-
         StringBuilder insertsb = new StringBuilder("INSERT INTO ");
 
         if (schema != null) {
@@ -431,8 +448,8 @@ public abstract class PowerManager {
         insertsb.append(" ) VALUES(");
         insertsb.append(sbvalues);
         insertsb.append(")");
-        
-        if(debugSQL){
+
+        if (debugSQL) {
             String q = logs(deletesb.toString(), deleteParams);
             logger.log(Level.INFO, q);
         }
@@ -443,12 +460,12 @@ public abstract class PowerManager {
                 powerValue.powerStatement(delStmt, i++);
             }
             delStmt.executeUpdate();
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(deletesb.toString(), deleteParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
 
-        if(debugSQL){
+        if (debugSQL) {
             String q = logs(insertsb.toString(), fullParams);
             logger.log(Level.INFO, q);
         }
@@ -466,26 +483,28 @@ public abstract class PowerManager {
                 insertStmt.addBatch();
             }
             insertStmt.executeBatch();
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(insertsb.toString(), fullParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
         // System.out.println(" INSRET QUERY: " + insertsb.toString());
 
         return 0;
     }
 
-    public int update(Object e, String... fields) throws SQLException, QueryBuilderException {
+    public int update(Object e, String... fields) throws PowerQueryException {
         return update(null, e, fields);
     }
 
-    public int update(String schema, Object e, String... fields) throws SQLException, QueryBuilderException {
+    public int update(String schema, Object e, String... fields) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return update(schema, e, conn, fields);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public int update(String schema, Object e, Connection conn, String... fields) throws SQLException, QueryBuilderException {
+    public int update(String schema, Object e, Connection conn, String... fields) throws PowerQueryException {
 
         Class entityClass = e.getClass();
         TableType tableType = this.getTableType(entityClass, conn);
@@ -581,25 +600,27 @@ public abstract class PowerManager {
                 powerValue.powerStatement(pstm, i++);
             }
             c = pstm.executeUpdate();
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(query, orderParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
 
         return c;
     }
 
-    public int delete(Object e) throws SQLException, QueryBuilderException {
+    public int delete(Object e) throws PowerQueryException {
         return delete(null, e);
     }
 
-    public int delete(String schema, Object e) throws SQLException, QueryBuilderException {
+    public int delete(String schema, Object e) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return delete(schema, e, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public int delete(String schema, Object e, Connection conn) throws SQLException, QueryBuilderException {
+    public int delete(String schema, Object e, Connection conn) throws PowerQueryException {
 
         Class entityClass = e.getClass();
         TableType tableType = this.getTableType(entityClass, conn);
@@ -646,7 +667,7 @@ public abstract class PowerManager {
         String queryString = sb.toString();
 
         // System.out.println(" DELETE QUERY: " + queryString);
-        if(debugSQL){
+        if (debugSQL) {
             String q = logs(queryString, orderParams);
             logger.log(Level.INFO, q);
         }
@@ -658,24 +679,26 @@ public abstract class PowerManager {
                 powerValue.powerStatement(pstm, i++);
             }
             c = pstm.executeUpdate();
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(queryString, orderParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
         return c;
     }
 
-    public void refresh(Object e, String... columnNames) throws SQLException, QueryBuilderException {
+    public void refresh(Object e, String... columnNames) throws PowerQueryException {
         refresh(null, e, columnNames);
     }
 
-    public void refresh(String schema, Object e, String... columnNames) throws SQLException, QueryBuilderException {
+    public void refresh(String schema, Object e, String... columnNames) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             refresh(schema, e, conn, columnNames);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public void refresh(String schema, Object e, Connection conn, String... columnNames) throws SQLException, QueryBuilderException {
+    public void refresh(String schema, Object e, Connection conn, String... columnNames) throws PowerQueryException {
 
         Class entityClass = e.getClass();
         TableType tableType = this.getTableType(entityClass, conn);
@@ -738,8 +761,8 @@ public abstract class PowerManager {
         }
 
         String queryString = sb.toString();
-        
-        if(debugSQL){
+
+        if (debugSQL) {
             String q = logs(queryString, whereParams);
             logger.log(Level.INFO, q);
         }
@@ -758,19 +781,21 @@ public abstract class PowerManager {
                     }
                 }
             }
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(queryString, whereParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
     }
 
-    public <E> E get(String schema, Serializable id, Class<E> entityClass, String... columnNames) throws SQLException, QueryBuilderException {
+    public <E> E get(String schema, Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return get(schema, id, entityClass, conn, columnNames);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public <E> E get(String schema, Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws SQLException, QueryBuilderException {
+    public <E> E get(String schema, Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws PowerQueryException {
 
         TableType tableType = this.getTableType(entityClass, conn);
 
@@ -834,7 +859,7 @@ public abstract class PowerManager {
 
         String queryString = sb.toString();
 
-        if(debugSQL){
+        if (debugSQL) {
             String q = logs(queryString, whereParams);
             logger.log(Level.INFO, q);
         }
@@ -855,23 +880,25 @@ public abstract class PowerManager {
                     }
                 }
             } catch (Exception ex) {
-                throw new QueryBuilderException(ex);
+                throw new PowerQueryException(ex);
             }
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(queryString, whereParams);
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
-        
+
         return e;
     }
 
-    public synchronized TableType getTableType(Class entityClass) throws SQLException, QueryBuilderException {
+    public synchronized TableType getTableType(Class entityClass) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return getTableType(entityClass, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public synchronized TableType getTableType(Class entityClass, Connection conn) throws SQLException, QueryBuilderException {
+    public synchronized TableType getTableType(Class entityClass, Connection conn) throws PowerQueryException {
 
         TableType tableType = tableTypeMap.get(entityClass);
         if (tableType == null) {
@@ -881,11 +908,11 @@ public abstract class PowerManager {
         return tableType;
     }
 
-    private <E> TableType buildTableType(Class<E> entityClass, Connection conn) throws SQLException, QueryBuilderException {
+    private <E> TableType buildTableType(Class<E> entityClass, Connection conn) throws PowerQueryException {
 
         Table ann = (Table) entityClass.getDeclaredAnnotation(Table.class);
         if (ann == null) {
-            throw new QueryBuilderException("No existe la anotacion @Table en la clase " + entityClass);
+            throw new PowerQueryException("No existe la anotacion @Table en la clase " + entityClass);
         }
 
         String tableNeme = ann.name();
@@ -945,6 +972,8 @@ public abstract class PowerManager {
                     columnType.setScale(mdrd.getScale(index));
                 }
             }
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
 
         tableType.setColumns(columns);
@@ -987,14 +1016,14 @@ public abstract class PowerManager {
         }
     }
 
-    private void addOneToManyType(Field field, List<JoinColumnsType> oneToManyTypes, TableType tableType) throws QueryBuilderException {
+    private void addOneToManyType(Field field, List<JoinColumnsType> oneToManyTypes, TableType tableType) throws PowerQueryException {
 
         OneToMany o2m = field.getAnnotation(OneToMany.class);
         if (o2m != null) {
 
             Class collectionRelatedClass = getCollectionRelatedClass(field);
             if (collectionRelatedClass == null) {
-                throw new QueryBuilderException("No se logro obtener la clase relacionada, utilice notacion generica <Ent>" + field.getName());
+                throw new PowerQueryException("No se logro obtener la clase relacionada, utilice notacion generica <Ent>" + field.getName());
             }
 
             try {
@@ -1007,19 +1036,19 @@ public abstract class PowerManager {
                 oneToManyTypes.add(cjt);
 
             } catch (NoSuchFieldException | SecurityException e) {
-                throw new QueryBuilderException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
+                throw new PowerQueryException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
             }
         }
     }
 
-    private void addManyToManyType(Field field, List<ManyToManyType> manyToManyTypes, TableType tableType) throws QueryBuilderException {
+    private void addManyToManyType(Field field, List<ManyToManyType> manyToManyTypes, TableType tableType) throws PowerQueryException {
 
         ManyToMany m2m = field.getAnnotation(ManyToMany.class);
         if (m2m != null) {
 
             Class collectionRelatedClass = getCollectionRelatedClass(field);
             if (collectionRelatedClass == null) {
-                throw new QueryBuilderException("No se logro obtener la clase relacionada, utilice notacion generica <Ent>" + field.getName());
+                throw new PowerQueryException("No se logro obtener la clase relacionada, utilice notacion generica <Ent>" + field.getName());
             }
             try {
 
@@ -1040,13 +1069,13 @@ public abstract class PowerManager {
                     }
                 }
             } catch (NoSuchFieldException | SecurityException e) {
-                throw new QueryBuilderException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
+                throw new PowerQueryException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
             }
         }
 
     }
 
-    private Class getCollectionRelatedClass(Field field) throws QueryBuilderException {
+    private Class getCollectionRelatedClass(Field field) throws PowerQueryException {
 
         Class collectionRelatedClass = null;
         Class returnClass = field.getType();
@@ -1062,7 +1091,7 @@ public abstract class PowerManager {
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
-                    throw new QueryBuilderException("No se logro obtener la clase relacionada, utilice notacion generica <Ent>" + field.getName(), e);
+                    throw new PowerQueryException("No se logro obtener la clase relacionada, utilice notacion generica <Ent>" + field.getName(), e);
                 }
             }
         }
@@ -1086,7 +1115,7 @@ public abstract class PowerManager {
         return joiners;
     }
 
-    private void addJoinColumnsType(Field field, List<JoinColumnsType> joinColumnsTypes, TableType tableType) throws QueryBuilderException {
+    private void addJoinColumnsType(Field field, List<JoinColumnsType> joinColumnsTypes, TableType tableType) throws PowerQueryException {
 
         ManyToOne mto = field.getAnnotation(ManyToOne.class);
         OneToOne oto = field.getAnnotation(OneToOne.class);
@@ -1115,7 +1144,7 @@ public abstract class PowerManager {
                         joinColumnsTypes.add(cjt);
                     }
                 } catch (NoSuchFieldException | SecurityException e) {
-                    throw new QueryBuilderException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
+                    throw new PowerQueryException("No se logro obtener reverso manyToMany del atributo " + field.getName(), e);
                 }
             } else {
                 List<JoinColumn> joiners = getJoiners(field);
@@ -1125,27 +1154,29 @@ public abstract class PowerManager {
         }
     }
 
-    public Dialect getDialect() throws QueryBuilderException {
+    public Dialect getDialect() throws PowerQueryException {
         if (dialect == null && this.getClass().isAnnotationPresent(Power.class)) {
             try {
                 Power ann = this.getClass().getAnnotation(Power.class);
                 Class<? extends Dialect> theclass = ann.dialect();
                 dialect = theclass.getConstructor(PowerManager.class).newInstance(this);
             } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException e) {
-                throw new QueryBuilderException("No se ha definido un dialect valido ", e);
+                throw new PowerQueryException("No se ha definido un dialect valido ", e);
             }
         }
 
         return dialect;
     }
 
-    public <E> E unique(Query<E> query) throws QueryBuilderException, SQLException {
+    public <E> E unique(Query<E> query) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return unique(query, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    private <E> E unique(Query<E> query, Connection conn) throws QueryBuilderException, SQLException {
+    private <E> E unique(Query<E> query, Connection conn) throws PowerQueryException {
         List<E> list = list(query, true, conn);
         if (!list.isEmpty()) {
             return list.get(0);
@@ -1153,27 +1184,29 @@ public abstract class PowerManager {
         return null;
     }
 
-    public <E> List<E> list(Query<E> query) throws QueryBuilderException, SQLException {
+    public <E> List<E> list(Query<E> query) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return list(query, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    private <E> List<E> list(Query<E> query, Connection conn) throws QueryBuilderException, SQLException {
+    private <E> List<E> list(Query<E> query, Connection conn) throws PowerQueryException {
         return list(query, false, conn);
     }
 
-    private <E> List<E> list(Query<E> query, boolean unique, Connection conn) throws QueryBuilderException, SQLException {
+    private <E> List<E> list(Query<E> query, boolean unique, Connection conn) throws PowerQueryException {
         List<E> list = new ArrayList();
 
         SelectParametrizedQuery<E> parametrizedQuery = (SelectParametrizedQuery) dryRun(query, conn);
         String queryString = parametrizedQuery.getQuery();
 
-        if(debugSQL){
+        if (debugSQL) {
             String q = logs(queryString, parametrizedQuery.getParams());
             logger.log(Level.INFO, q);
         }
-        
+
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
@@ -1185,14 +1218,14 @@ public abstract class PowerManager {
                 int k = 0;
                 while (rs.next()) {
                     if (unique && k > 0) {
-                        throw new QueryBuilderException(" Resultado no unico ");
+                        throw new PowerQueryException(" Resultado no unico ");
                     }
                     E rootInstance;
                     try {
                         rootInstance = parametrizedQuery.getTargetClass().getConstructor().newInstance();
                     } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
                         Logger.getLogger(PowerManager.class.getName()).log(Level.SEVERE, null, ex);
-                        throw new QueryBuilderException(" No se pudo crear instancia de la clase query.getEntityClass() ", ex);
+                        throw new PowerQueryException(" No se pudo crear instancia de la clase query.getEntityClass() ", ex);
                     }
                     for (PowerColumnType st : parametrizedQuery.getSelectColumns()) {
                         st.push(rootInstance, rs);
@@ -1217,9 +1250,9 @@ public abstract class PowerManager {
                     k++;
                 }
             }
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(queryString, parametrizedQuery.getParams());
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
 
         // Gson gson = new GsonBuilder().excludeFieldsWithModifiers(Modifier.PROTECTED).setPrettyPrinting().create();
@@ -1228,8 +1261,8 @@ public abstract class PowerManager {
         return list;
     }
 
-    private List getCollection(Object rootInstance, CollectionParametrizedQuery pq, Connection conn) throws QueryBuilderException, SQLException {
-        if(debugSQL){
+    private List getCollection(Object rootInstance, CollectionParametrizedQuery pq, Connection conn) throws PowerQueryException {
+        if (debugSQL) {
             String q = logs(pq.getQuery(), pq.getParams());
             logger.log(Level.INFO, q);
         }
@@ -1249,7 +1282,7 @@ public abstract class PowerManager {
                         instance = pq.getTargetClass().getConstructor().newInstance();
                     } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
                         Logger.getLogger(PowerManager.class.getName()).log(Level.SEVERE, null, ex);
-                        throw new QueryBuilderException(" No se pudo crear instancia de la clase query.getEntityClass() ", ex);
+                        throw new PowerQueryException(" No se pudo crear instancia de la clase query.getEntityClass() ", ex);
                     }
                     for (PowerColumnType st : pq.getSelectColumns()) {
                         st.push(instance, rs);
@@ -1259,18 +1292,18 @@ public abstract class PowerManager {
                 }
             }
 
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(pq.getQuery(), pq.getParams());
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
         return fetchList;
     }
 
-    public void push(Class targetClass, String fieldName, Object target, List collection) throws QueryBuilderException {
+    public void push(Class targetClass, String fieldName, Object target, List collection) throws PowerQueryException {
         try {
             getWriteMethod(targetClass, fieldName).invoke(target, collection);
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new QueryBuilderException(e);
+            throw new PowerQueryException(e);
         }
     }
 
@@ -1296,23 +1329,25 @@ public abstract class PowerManager {
         return null;
     }
 
-    public Integer count(Query query) throws SQLException, QueryBuilderException {
+    public Integer count(Query query) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return count(query, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public Integer count(Query query, Connection conn) throws SQLException, QueryBuilderException {
+    public Integer count(Query query, Connection conn) throws PowerQueryException {
 
         int c = 0;
 
         ParametrizedQuery pq = dryRun(query, true, conn);
         String queryString = pq.getQuery();
-        if(debugSQL){
+        if (debugSQL) {
             String q = logs(queryString, pq.getParams());
             logger.log(Level.INFO, q);
         }
-        
+
         try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
@@ -1325,26 +1360,28 @@ public abstract class PowerManager {
                     c = rs.getInt(1);
                 }
             }
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(pq.getQuery(), pq.getParams());
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
         return c;
     }
 
-    public int execute(Query query) throws SQLException, QueryBuilderException {
+    public int execute(Query query) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return execute(query, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
-    public int execute(Query query, Connection conn) throws SQLException, QueryBuilderException {
+    public int execute(Query query, Connection conn) throws PowerQueryException {
 
         int c;
         ParametrizedQuery pq = dryRun(query, conn);
         String queryString = pq.getQuery();
-        
-        if(debugSQL){
+
+        if (debugSQL) {
             String q = logs(queryString, pq.getParams());
             logger.log(Level.INFO, q);
         }
@@ -1355,15 +1392,15 @@ public abstract class PowerManager {
                 powerValue.powerStatement(pstm, i++);
             }
             c = pstm.executeUpdate();
-        } catch(SQLException ex){
+        } catch (SQLException ex) {
             String q = logs(pq.getQuery(), pq.getParams());
-            throw new QueryBuilderException(q, ex);
+            throw new PowerQueryException(q, ex);
         }
 
         return c;
     }
 
-    private void push(Object parent, List<JoinNode> nodes, ResultSet rs) throws QueryBuilderException, SQLException {
+    private void push(Object parent, List<JoinNode> nodes, ResultSet rs) throws PowerQueryException {
 
         for (JoinNode node : nodes) {
 
@@ -1380,14 +1417,14 @@ public abstract class PowerManager {
         }
     }
 
-    public List<JoinNode> toJoinNodes(TableType tableType, List<Join> joins, Connection conn) throws QueryBuilderException, SQLException {
+    public List<JoinNode> toJoinNodes(TableType tableType, List<Join> joins, Connection conn) throws PowerQueryException {
 
         List<JoinNode> rootJoinNodes = new ArrayList();
         for (Join j : joins) {
 
             String[] path = j.getFieldPath().split("[.]");
             if (path.length <= 0) {
-                throw new QueryBuilderException("No se encuentra el path " + j.getFieldPath());
+                throw new PowerQueryException("No se encuentra el path " + j.getFieldPath());
             }
 
             joins(path, j.getAlias(), rootJoinNodes, tableType, j.getJointype(), conn);
@@ -1395,7 +1432,7 @@ public abstract class PowerManager {
         return rootJoinNodes;
     }
 
-    private void joins(String[] path, String alias, List<JoinNode> joins, TableType tableType, Query.JOINTYPE joinType, Connection conn) throws QueryBuilderException, SQLException {
+    private void joins(String[] path, String alias, List<JoinNode> joins, TableType tableType, Query.JOINTYPE joinType, Connection conn) throws PowerQueryException {
 
         String entityFieldName = path[0];
 
@@ -1426,7 +1463,7 @@ public abstract class PowerManager {
         joins(sub, alias, node.getChildren(), node.getChildTableType(), joinType, conn);
     }
 
-    private JoinNode getJoinNode(TableType tableType, String fieldName, String alias, Connection conn) throws QueryBuilderException, SQLException {
+    private JoinNode getJoinNode(TableType tableType, String fieldName, String alias, Connection conn) throws PowerQueryException {
 
         JoinColumnsType jcst = tableType.getJoinColumnsType(fieldName);
         TableType t = getTableType(jcst.getFieldClass(), conn);
@@ -1443,12 +1480,12 @@ public abstract class PowerManager {
         return node;
     }
 
-    /*public PowerColumnType getAliasColumnType(String fieldPath, Query query, List<JoinNode> rootJoinNodes) throws SQLException, QueryBuilderException {
+    /*public PowerColumnType getAliasColumnType(String fieldPath, Query query, List<JoinNode> rootJoinNodes) throws SQLException, PowerQueryException {
         try (Connection conn = getConnection()) {
             return getAliasColumnType(fieldPath, query, rootJoinNodes, conn);
         }
     }*/
-    public PowerColumnType getAliasColumnType(String fieldPath, Class entityClass, String rootAlias, List<JoinNode> rootJoinNodes, Connection conn) throws SQLException, QueryBuilderException {
+    public PowerColumnType getAliasColumnType(String fieldPath, Class entityClass, String rootAlias, List<JoinNode> rootJoinNodes, Connection conn) throws PowerQueryException {
 
         TableType tableType = getTableType(entityClass, conn);
 
@@ -1458,12 +1495,14 @@ public abstract class PowerManager {
         }
 
         if (path.length == 1) {
+
             ColumnType ct = tableType.getFieldColumnType(path[0]);
             if (ct == null) {
                 return null;
             }
 
             PowerColumnType ext = new PowerColumnType(ct);
+            ext.setTableAlias(rootAlias);
             return ext;
         }
 
@@ -1505,7 +1544,7 @@ public abstract class PowerManager {
         return ct;
     }
 
-    public ParametrizedQuery dryRun(Query query, boolean count, Connection conn) throws SQLException, QueryBuilderException {
+    public ParametrizedQuery dryRun(Query query, boolean count, Connection conn) throws PowerQueryException {
 
         ParametrizedQuery pq = null;
         if (query.getQtype() == Query.QTYPE.SELECT) {
@@ -1519,17 +1558,19 @@ public abstract class PowerManager {
         return pq;
     }
 
-    public ParametrizedQuery dryRun(Query query, Connection conn) throws SQLException, QueryBuilderException {
+    public ParametrizedQuery dryRun(Query query, Connection conn) throws PowerQueryException {
         return dryRun(query, false, conn);
     }
 
-    public ParametrizedQuery dryRun(Query query) throws SQLException, QueryBuilderException {
+    public ParametrizedQuery dryRun(Query query) throws PowerQueryException {
         return dryRun(query, false);
     }
 
-    public ParametrizedQuery dryRun(Query query, boolean count) throws SQLException, QueryBuilderException {
+    public ParametrizedQuery dryRun(Query query, boolean count) throws PowerQueryException {
         try (Connection conn = getConnection()) {
             return dryRun(query, count, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
         }
     }
 
@@ -1628,7 +1669,7 @@ public abstract class PowerManager {
         return sb.toString();
     }
 
-    private SelectParametrizedQuery selectParametrizedQuery(Query query, boolean count, Connection conn) throws SQLException, QueryBuilderException {
+    private SelectParametrizedQuery selectParametrizedQuery(Query query, boolean count, Connection conn) throws PowerQueryException {
 
         List<PowerColumnType> params = new ArrayList();
         List<PowerColumnType> selectColumns = null;
@@ -1637,7 +1678,7 @@ public abstract class PowerManager {
         TableType tableType = getTableType(query.getEntityClass(), conn);
 
         if (tableType == null) {
-            throw new QueryBuilderException("No esta definida la tabla en donde construir el query");
+            throw new PowerQueryException("No esta definida la tabla en donde construir el query");
         }
 
         List<JoinNode> rootJoinNodes = toJoinNodes(tableType, query.getJoins(), conn);
@@ -1738,7 +1779,7 @@ public abstract class PowerManager {
         return pq;
     }
 
-    private CollectionParametrizedQuery fetchParametrizedQuery(Query query, Fetch fetch, Connection conn) throws SQLException, QueryBuilderException {
+    private CollectionParametrizedQuery fetchParametrizedQuery(Query query, Fetch fetch, Connection conn) throws PowerQueryException {
 
         List<PowerColumnType> params = new ArrayList();
         List<PowerColumnType> selectColumns = null;
@@ -1746,7 +1787,7 @@ public abstract class PowerManager {
         TableType tableType = getTableType(query.getEntityClass(), conn);
 
         if (tableType == null) {
-            throw new QueryBuilderException("No esta definida la tabla en donde construir el query");
+            throw new PowerQueryException("No esta definida la tabla en donde construir el query");
         }
 
         ManyToManyType m2mt = tableType.getManyToManyType(fetch.getCollectionField());
@@ -1976,14 +2017,14 @@ public abstract class PowerManager {
         return null;
     }
 
-    private ParametrizedQuery deleteParametrizedQuery(Query query, Connection conn) throws SQLException, QueryBuilderException {
+    private ParametrizedQuery deleteParametrizedQuery(Query query, Connection conn) throws PowerQueryException {
 
         List<PowerColumnType> params = new ArrayList();
 
         TableType tableType = getTableType(query.getEntityClass(), conn);
 
         if (tableType == null) {
-            throw new QueryBuilderException("No esta definida la tabla en donde construir el query");
+            throw new PowerQueryException("No esta definida la tabla en donde construir el query");
         }
 
         List<JoinNode> rootJoinNodes = toJoinNodes(tableType, query.getJoins(), conn);
@@ -2045,13 +2086,13 @@ public abstract class PowerManager {
         return pq;
     }
 
-    private ParametrizedQuery updateParametrizedQuery(Query query, Connection conn) throws SQLException, QueryBuilderException {
+    private ParametrizedQuery updateParametrizedQuery(Query query, Connection conn) throws PowerQueryException {
         List<PowerColumnType> params = new ArrayList();
 
         TableType tableType = getTableType(query.getEntityClass(), conn);
 
         if (tableType == null) {
-            throw new QueryBuilderException("No esta definida la tabla en donde construir el query");
+            throw new PowerQueryException("No esta definida la tabla en donde construir el query");
         }
 
         List<JoinNode> rootJoinNodes = toJoinNodes(tableType, query.getJoins(), conn);
@@ -2126,7 +2167,7 @@ public abstract class PowerManager {
     public void setDebugSQL(boolean debugSQL) {
         this.debugSQL = debugSQL;
     }
-    
+
     private String logs(String query, List<PowerColumnType> params) {
 
         StringBuilder sb = new StringBuilder();
@@ -2140,7 +2181,7 @@ public abstract class PowerManager {
 
         return sb.toString();
     }
-    
+
     private String logs(String query, Function<PreparedStatement, Void> fun) {
 
         StringBuilder sb = new StringBuilder();

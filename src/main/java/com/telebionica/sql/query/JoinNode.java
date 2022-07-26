@@ -89,16 +89,16 @@ public class JoinNode {
         this.selectColumns = selectColumns;
     }
 
-    public Object newChild() throws QueryBuilderException {
+    public Object newChild() throws PowerQueryException {
         try {
             return getChildTableType().getEntityClass().getConstructor().newInstance();
         } catch (IllegalAccessException | IllegalArgumentException | InstantiationException | NoSuchMethodException | SecurityException | InvocationTargetException ex) {
             Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
-            throw new QueryBuilderException(ex);
+            throw new PowerQueryException(ex);
         }
     }
 
-    public void setter(Object obj, Object child) throws QueryBuilderException {
+    public void setter(Object obj, Object child) throws PowerQueryException {
        joinColumnsType.setter(obj, child);
     }
     

@@ -6,7 +6,7 @@
 package com.telebionica.sql.data;
 
 import com.telebionica.sql.query.JoinNode;
-import com.telebionica.sql.query.QueryBuilderException;
+import com.telebionica.sql.query.PowerQueryException;
 import com.telebionica.sql.type.ColumnType;
 import com.telebionica.sql.util.JDBCUtil;
 import java.beans.IntrospectionException;
@@ -80,7 +80,7 @@ public class PowerColumnType {
         }
     }
 
-    public void powerStatement(PreparedStatement pstm, int i) throws SQLException, QueryBuilderException {
+    public void powerStatement(PreparedStatement pstm, int i) throws SQLException, PowerQueryException {
 
         if (columnType.hasEnumerated() && value != null && value.getClass().isEnum()) {
             try {
@@ -88,7 +88,7 @@ public class PowerColumnType {
                 Integer ordinal = (Integer) m.invoke(value);
                 pstm.setObject(i++, ordinal, columnType.getType());
             } catch (Exception e) {
-                throw new QueryBuilderException("Conversion de dato ", e);
+                throw new PowerQueryException("Conversion de dato ", e);
             }
             return;
         }
@@ -100,7 +100,7 @@ public class PowerColumnType {
         }
     }
 
-    public boolean push(Object target, ResultSet rs) throws QueryBuilderException, SQLException {
+    public boolean push(Object target, ResultSet rs) throws PowerQueryException {
 
         Object any = null;
         try {
@@ -146,17 +146,17 @@ public class PowerColumnType {
                     any = obj;
                 }
             } else {
-                throw new QueryBuilderException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
+                throw new PowerQueryException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
             }
 
-        } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new QueryBuilderException(e);
+        } catch (SQLException | IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+            throw new PowerQueryException(e);
         }
 
         return any != null;
     }
 
-    public boolean push(Object target, ResultSet rs, int i) throws QueryBuilderException, SQLException {
+    public boolean push(Object target, ResultSet rs, int i) throws PowerQueryException, SQLException {
 
         Object any = null;
         try {
@@ -202,32 +202,32 @@ public class PowerColumnType {
                     any = obj;
                 }
             } else {
-                throw new QueryBuilderException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
+                throw new PowerQueryException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
             }
 
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new QueryBuilderException(e);
+            throw new PowerQueryException(e);
         }
 
         return any != null;
     }
 
-    public void setter(Object obj, Object child) throws QueryBuilderException {
+    public void setter(Object obj, Object child) throws PowerQueryException {
         try {
             Method m = columnType.getWriteMethod();
             m.invoke(obj, child);
         } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException | IntrospectionException ex) {
             Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
-            throw new QueryBuilderException(ex);
+            throw new PowerQueryException(ex);
         }
     }
 
-    public void getter(Object obj) throws QueryBuilderException {
+    public void getter(Object obj) throws PowerQueryException {
         try {
             Method m = columnType.getReadMethod();
             this.value = m.invoke(obj);
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-            throw new QueryBuilderException(e);
+            throw new PowerQueryException(e);
         }
     }
 }

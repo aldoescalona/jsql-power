@@ -5,7 +5,6 @@
  */
 package com.telebionica.sql.order;
 
-import com.telebionica.sql.query.Query;
 
 /**
  *

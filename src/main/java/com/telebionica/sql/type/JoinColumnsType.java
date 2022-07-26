@@ -6,7 +6,7 @@
 package com.telebionica.sql.type;
 
 import com.telebionica.sql.query.JoinNode;
-import com.telebionica.sql.query.QueryBuilderException;
+import com.telebionica.sql.query.PowerQueryException;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -82,25 +82,25 @@ public class JoinColumnsType {
     }
     
     
-    public Object getter(Object b) throws QueryBuilderException {
+    public Object getter(Object b) throws PowerQueryException {
         Object obj = null;
         try {
             Method m = getReadMethod();
             obj = m.invoke(b);
         } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException | IntrospectionException ex) {
             Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
-            throw new QueryBuilderException(ex);
+            throw new PowerQueryException(ex);
         }
         return obj;
     }
     
-    public void setter(Object obj, Object child) throws QueryBuilderException {
+    public void setter(Object obj, Object child) throws PowerQueryException {
         try {
             Method m = getWriteMethod();
             m.invoke(obj, child);
         } catch (IllegalArgumentException | InvocationTargetException | IllegalAccessException | IntrospectionException ex) {
             Logger.getLogger(JoinNode.class.getName()).log(Level.SEVERE, null, ex);
-            throw new QueryBuilderException(ex);
+            throw new PowerQueryException(ex);
         }
     }
     
