@@ -10,7 +10,6 @@ import com.telebionica.sql.order.Order;
 import com.telebionica.sql.join.Join;
 import com.telebionica.sql.power.PowerManager;
 import com.telebionica.sql.setu.SetForUpdate;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,33 +39,33 @@ public class Query<E> {
     private List<Predicate> predicates;
     private List<SetForUpdate> sets;
 
-    public Query(PowerManager powerManager) throws SQLException, QueryBuilderException {
+    public Query(PowerManager powerManager) throws PowerQueryException {
         this.powerManager = powerManager;
     }
 
-    public Query schema(String schema) throws SQLException, QueryBuilderException {
+    public Query schema(String schema) throws PowerQueryException {
         this.schema = schema;
         return this;
     }
 
-    public Query<E> select(String... columnNames) throws SQLException, QueryBuilderException {
+    public Query<E> select(String... columnNames) throws PowerQueryException {
         qtype = QTYPE.SELECT;
         this.selectFieldNames = columnNames;
         return this;
     }
 
-    public Query<E> from(Class<E> entityClass) throws SQLException, QueryBuilderException {
+    public Query<E> from(Class<E> entityClass) throws PowerQueryException {
         return from(entityClass, "e");
     }
 
-    public Query<E> from(Class<E> entityClass, String alias) throws SQLException, QueryBuilderException {
+    public Query<E> from(Class<E> entityClass, String alias) throws PowerQueryException {
 
         if (qtype == null) {
-            throw new QueryBuilderException("No se ha establecido el qtype, use previamente select() o delete(String ...aliases)");
+            throw new PowerQueryException("No se ha establecido el qtype, use previamente select() o delete(String ...aliases)");
         }
 
         if (alias == null) {
-            throw new QueryBuilderException("Alias no puede ser nulo en from(Class entityClass, String alias)");
+            throw new PowerQueryException("Alias no puede ser nulo en from(Class entityClass, String alias)");
         }
 
         this.rootAlias = alias;
@@ -81,26 +80,26 @@ public class Query<E> {
         return this;
     }
 
-    public Query<E> join(String fieldPath, String alias) throws QueryBuilderException, SQLException {
+    public Query<E> join(String fieldPath, String alias) throws PowerQueryException {
         return join(fieldPath, alias, JOINTYPE.INNER);
     }
 
-    public Query<E> left(String field, String alias) throws QueryBuilderException, SQLException {
+    public Query<E> left(String field, String alias) throws PowerQueryException {
         return join(field, alias, JOINTYPE.LEFT);
     }
 
-    public Query<E> right(String field, String alias) throws QueryBuilderException, SQLException {
+    public Query<E> right(String field, String alias) throws PowerQueryException {
         return join(field, alias, JOINTYPE.RIGHT);
     }
 
-    public Query<E> join(String fieldPath, String alias, JOINTYPE jointype) throws QueryBuilderException, SQLException {
+    public Query<E> join(String fieldPath, String alias, JOINTYPE jointype) throws PowerQueryException {
 
         if (rootAlias == null) {
-            throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
+            throw new PowerQueryException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
         }
 
         if (jointype == null) {
-            throw new QueryBuilderException("Jointype no puede ser nulo");
+            throw new PowerQueryException("Jointype no puede ser nulo");
         }
 
         joins.add(new Join(fieldPath, alias, jointype));
@@ -108,18 +107,18 @@ public class Query<E> {
         return this;
     }
     
-    public Query<E> fetch(Fetch fetch) throws QueryBuilderException {
+    public Query<E> fetch(Fetch fetch) throws PowerQueryException {
         if (rootAlias == null) {
-            throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
+            throw new PowerQueryException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
         }
         fetchs.add(fetch);
         return this;
     }
     
-    public Query<E> fetch(String collectionField, String alias) throws QueryBuilderException {
+    public Query<E> fetch(String collectionField, String alias) throws PowerQueryException {
 
         if (rootAlias == null) {
-            throw new QueryBuilderException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
+            throw new PowerQueryException("No se ha establecido un alias del root en en from(Class entityClass, String alias) ");
         }
 
         fetchs.add(new Fetch(collectionField, alias));
@@ -150,10 +149,10 @@ public class Query<E> {
         return this;
     }
 
-    public Query<E> update(Class<E> entityClass, String alias) throws SQLException, QueryBuilderException {
+    public Query<E> update(Class<E> entityClass, String alias) throws PowerQueryException {
 
         if (qtype != null && (qtype == QTYPE.SELECT || qtype == QTYPE.INSERT || qtype == QTYPE.DELETE)) {
-            throw new QueryBuilderException("Ya se ha fijado el query como " + qtype + " elija oportunamente un tipo");
+            throw new PowerQueryException("Ya se ha fijado el query como " + qtype + " elija oportunamente un tipo");
         }
 
         qtype = QTYPE.UPDATE;
@@ -174,19 +173,19 @@ public class Query<E> {
         return this;
     }
 
-    public List<E> list() throws QueryBuilderException, SQLException {
+    public List<E> list() throws PowerQueryException {
         return powerManager.list(this);
     }
 
-    public Integer count() throws SQLException, QueryBuilderException {
+    public Integer count() throws PowerQueryException {
         return powerManager.count(this);
     }
 
-    public int execute() throws SQLException, QueryBuilderException {
+    public int execute() throws PowerQueryException {
         return powerManager.execute(this);
     }
 
-    public E unique() throws SQLException, QueryBuilderException{
+    public E unique() throws PowerQueryException{
         return powerManager.unique(this);
     }
 

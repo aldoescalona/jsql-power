@@ -8,9 +8,8 @@ package com.telebionica.sql.setu;
 import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.JoinNode;
 import com.telebionica.sql.query.Query;
-import com.telebionica.sql.query.QueryBuilderException;
+import com.telebionica.sql.query.PowerQueryException;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.List;
 
 /**
@@ -24,7 +23,7 @@ public abstract class SetForUpdate {
     public abstract String getAsignStatement();
     public abstract boolean hasValue();
     public abstract PowerColumnType getValueType();
-    public abstract void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException, SQLException;
+    public abstract void build(List<JoinNode> rootJoinNodes, Connection conn) throws PowerQueryException;
 
     public Query getQuery() {
         return query;

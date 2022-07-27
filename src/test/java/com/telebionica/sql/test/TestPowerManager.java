@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.telebionica.sql.power.Power;
+import com.telebionica.sql.query.PowerQueryException;
 
 /**
  *
@@ -25,6 +26,7 @@ public class TestPowerManager extends PowerManager {
     private static final String ESQUEMA_RST = "RSTX";
 
     public TestPowerManager() {
+        this.setDebugSQL(true);
     }
 
     static {
@@ -36,7 +38,7 @@ public class TestPowerManager extends PowerManager {
     }
 
     @Override
-    public Connection getConnection() throws SQLException {
+    public Connection getConnection() throws PowerQueryException {
         
         String username = "root";
         String password = "root";
@@ -46,8 +48,13 @@ public class TestPowerManager extends PowerManager {
         
         String url = "jdbc:mysql://" + hostname + ":" + port + "/" + database;
 
-        Connection conn = DriverManager.getConnection(url, username, password);
-        return conn;
+        Connection conn;
+        try {
+            conn = DriverManager.getConnection(url, username, password);
+            return conn;
+        }catch (SQLException ex) {
+            throw new PowerQueryException(ex);
+        }
     }
 
 }

@@ -55,5 +55,7 @@ public class Predicates {
         return new RawPredicate(raw);
     }
     
-    
+    public static EqEntity eqEntity(String colname, Object obj) {
+        return new EqEntity(colname, obj);
+    }
 }

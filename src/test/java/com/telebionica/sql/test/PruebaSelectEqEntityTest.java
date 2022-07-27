@@ -1,6 +1,7 @@
 package com.telebionica.sql.test;
 
 import com.telebionica.risto.batch.model.Factura;
+import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaSelectListTest {
+public class PruebaSelectEqEntityTest {
 
     
     @Test
@@ -29,13 +30,13 @@ public class PruebaSelectListTest {
             pm.setMetadaSchema("RSTX");
             Query query = pm.createQuery();
 
+            Prueba prueba = new Prueba();
 
             query.schema("RST0").
                     select().
-                    from(Prueba.class, "e").
-                    fetch("itemPruebaList", "it").
-                    where(Predicates.eq("e.id", 6));
-                    
+                    from(ItemPrueba.class, "it").
+                    where(Predicates.eqEntity("pruebaId", prueba));
+            
             List<Factura> list = query.list();
             
             System.out.println(" LIST: " + list);

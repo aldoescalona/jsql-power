@@ -7,7 +7,7 @@ package com.telebionica.sql.setu;
 
 import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.query.JoinNode;
-import com.telebionica.sql.query.QueryBuilderException;
+import com.telebionica.sql.query.PowerQueryException;
 import java.sql.Connection;
 import java.util.List;
 
@@ -39,6 +39,6 @@ public class SetRaw extends SetForUpdate{
     }
 
     @Override
-    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws QueryBuilderException {
+    public void build(List<JoinNode> rootJoinNodes, Connection conn) throws PowerQueryException {
     }
 }
