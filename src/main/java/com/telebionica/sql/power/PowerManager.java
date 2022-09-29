@@ -28,11 +28,9 @@ import com.telebionica.sql.type.JoinColumnsType;
 import com.telebionica.sql.type.TableType;
 import com.telebionica.sql.util.Generator;
 import com.telebionica.validator.ann.AnnotationUtil;
-import com.telebionica.validator.FieldValidator;
 import com.telebionica.validator.Message;
 import com.telebionica.validator.Messages;
 import com.telebionica.validator.ann.Unique;
-import com.telebionica.validator.Validator;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -902,12 +900,20 @@ public abstract class PowerManager {
         }
     }
 
+    public <E> E get(Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
+        return get(null, id,entityClass, columnNames);
+    }
+    
     public <E> E get(String schema, Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
         try ( Connection conn = getConnection()) {
             return get(schema, id, entityClass, conn, columnNames);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
         }
+    }
+    
+    public <E> E get(Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws PowerQueryException {
+        return get(null, id, entityClass, conn, columnNames);
     }
 
     public <E> E get(String schema, Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws PowerQueryException {

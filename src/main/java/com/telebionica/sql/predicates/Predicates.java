@@ -70,4 +70,8 @@ public class Predicates {
     public static EqEntity eqEntity(String colname, Object obj) {
         return new EqEntity(colname, obj);
     }
+    
+    public static Like like(String colname, Object value, Like.MATCH_MODE match_mode) {
+        return new Like(colname, value, match_mode);
+    }
 }

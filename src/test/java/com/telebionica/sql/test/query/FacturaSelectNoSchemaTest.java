@@ -20,9 +20,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class FacturaSelectTest {
+public class FacturaSelectNoSchemaTest {
 
-    public FacturaSelectTest() {
+    public FacturaSelectNoSchemaTest() {
     }
 
     @org.junit.jupiter.api.BeforeAll
@@ -58,8 +58,7 @@ public class FacturaSelectTest {
             
             Junction or = Predicates.or(Predicates.compare("f.estado", Comparison.COMPARISON_OPERATOR.EQ_SAFENULL, 2), Predicates.isNUll("f.uuid"));
 
-            query.schema("RST0").
-                    select().
+            query.select().
                     from(Factura.class, "f").
                     left("facturaSustitucion", "fs").
                     left("emisorFactura", "ef1").

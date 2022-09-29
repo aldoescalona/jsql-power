@@ -6,7 +6,6 @@
 package com.telebionica.sql.test.update;
 
 import com.telebionica.sql.power.ItemPrueba;
-import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import com.telebionica.sql.setu.SetsForUpdate;
@@ -27,7 +26,7 @@ public class PruebaUpdateQueryTest {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query<Prueba> query = pm.createQuery();
+            Query<ItemPrueba> query = pm.createQuery();
 
             /*int c = query.schema("RST0").update(Prueba.class, "e")
                     .set(SetsForUpdate.value("e.datoIntA", 89))

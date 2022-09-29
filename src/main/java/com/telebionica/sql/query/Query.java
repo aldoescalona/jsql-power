@@ -44,7 +44,7 @@ public class Query<E> {
         this.powerManager = powerManager;
     }
 
-    public Query schema(String schema) throws PowerQueryException {
+    public Query<E> schema(String schema) throws PowerQueryException {
         this.schema = schema;
         return this;
     }
