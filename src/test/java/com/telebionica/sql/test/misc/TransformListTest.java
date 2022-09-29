@@ -1,11 +1,9 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.misc;
 
 import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.sql.power.PowerManager;
-import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.power.TRANSFORMTYPE;
-import com.telebionica.sql.predicates.Predicates;
-import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;

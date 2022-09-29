@@ -1,13 +1,9 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.delete;
 
 import com.telebionica.risto.batch.model.Factura;
-import com.telebionica.sql.order.Order;
-import com.telebionica.sql.power.Prueba;
-import com.telebionica.sql.predicates.Comparison;
-import com.telebionica.sql.predicates.Junction;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
-import java.util.List;
+import com.telebionica.sql.test.TestPowerManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -20,9 +16,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class FacturaSelectTest {
+public class DeleteQueryTest {
 
-    public FacturaSelectTest() {
+    public DeleteQueryTest() {
     }
 
     @org.junit.jupiter.api.BeforeAll
@@ -53,32 +49,16 @@ public class FacturaSelectTest {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query<Prueba> query = pm.createQuery();
-            
-            
-            Junction or = Predicates.or(Predicates.compare("f.estado", Comparison.COMPARISON_OPERATOR.EQ_SAFENULL, 2), Predicates.isNUll("f.uuid"));
+            Query query = pm.createQuery();
 
             query.schema("RST0").
-                    select().
+                    delete("f", "fs").
                     from(Factura.class, "f").
                     left("facturaSustitucion", "fs").
-                    left("emisorFactura", "ef1").
-                    left("facturaSustitucion.emisorFactura", "ef2").
-                    // where(Predicates.eq("f.folioSat", "E52BEAA6-D1E3-4BE3-82FD-304A3A12BA37")).
-                    where(or).
-                    // and(or).
-                    addOrder(Order.asc("f.folioSat")).
-                    addOrder(Order.desc("f.estado")).
-                    setFirstResult(0).
-                    setMaxResults(5);
+                    where(Predicates.eq("f.id", 1472098164300L));
             
-            List list = query.list();
+            int c  = query.execute();
             
-            System.out.println(" LIST: " + list);
-            
-            // query.schema("RST0").from().join("emisorFactura", "ef");
-            // query.schema("RST0").from().left("facturaSustitucion", "fs");
-            // query.schema("RST0").from().left("facturaSustitucion", "fs").left("emisorFactura", "ef");
         } catch (Exception e) {
             e.printStackTrace();
         }

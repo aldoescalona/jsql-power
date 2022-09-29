@@ -1,8 +1,10 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.query;
 
 import com.telebionica.risto.batch.model.Factura;
+import com.telebionica.sql.order.Order;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -15,9 +17,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class DeleteTest {
+public class FacturaCountTest {
 
-    public DeleteTest() {
+    public FacturaCountTest() {
     }
 
     @org.junit.jupiter.api.BeforeAll
@@ -40,7 +42,7 @@ public class DeleteTest {
     // The methods must be annotated with annotation @Test. For example:
     //
     @Test
-    public void hello() {
+    public void prueba() {
 
         System.out.println(" PROBANDO PROBANDO");
 
@@ -50,14 +52,22 @@ public class DeleteTest {
             pm.setMetadaSchema("RSTX");
             Query query = pm.createQuery();
 
+
             query.schema("RST0").
-                    delete("f", "fs").
+                    select().
                     from(Factura.class, "f").
-                    left("facturaSustitucion", "fs").
-                    where(Predicates.eq("f.id", 1472098164300L));
+                    join("emisorFactura", "ef1").
+                    where(Predicates.eq("ef1.id", 1476333018261L)).
+                    addOrder(Order.asc("f.folioSat")).
+                    addOrder(Order.desc("f.estado")).
+                    setFirstResult(0).
+                    setMaxResults(5);
+
+            int c = query.count();
             
-            int c  = query.execute();
+            System.out.println(" COUNT: " + c);
             
+           
         } catch (Exception e) {
             e.printStackTrace();
         }

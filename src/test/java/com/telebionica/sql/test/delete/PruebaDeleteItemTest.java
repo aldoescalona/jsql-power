@@ -3,12 +3,10 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.delete;
 
-import com.telebionica.sql.power.Prueba;
-import com.telebionica.sql.predicates.Predicates;
-import com.telebionica.sql.query.Query;
-import java.util.List;
+import com.telebionica.sql.power.ItemPrueba;
+import com.telebionica.sql.test.TestPowerManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +14,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaUpdateTest {
+public class PruebaDeleteItemTest {
     
      @Test
     public void test() {
@@ -25,19 +23,13 @@ public class PruebaUpdateTest {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query query = pm.createQuery();
 
-            List<Prueba> list = query.schema("RST0").select().from(Prueba.class)
-                    .where(Predicates.eq("id", 1L))
-                    .list();
             
-            System.out.println(" LIST: " + list);
+            ItemPrueba item = new ItemPrueba();
+            item.setId(16484822842100L);
+            item.setDescripcion("Lorem ipsum dolor sit amet");
             
-            Prueba p = list.get(0);
-            p.setDatoIntA(120);
-            
-            pm.update("RST0", p);
-            pm.update("RST0", p, "datoIntA");
+            pm.delete("RST0", item);
             
             
         } catch (Exception e) {

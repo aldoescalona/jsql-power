@@ -1,4 +1,4 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.query;
 
 import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.sql.order.Order;
@@ -7,6 +7,7 @@ import com.telebionica.sql.predicates.Comparison;
 import com.telebionica.sql.predicates.Junction;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -20,9 +21,9 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class FacturaCountTest {
+public class FacturaSelectTest {
 
-    public FacturaCountTest() {
+    public FacturaSelectTest() {
     }
 
     @org.junit.jupiter.api.BeforeAll
@@ -45,37 +46,40 @@ public class FacturaCountTest {
     // The methods must be annotated with annotation @Test. For example:
     //
     @Test
-    public void prueba() {
+    public void hello() {
 
         System.out.println(" PROBANDO PROBANDO");
 
-        /*Field[] fields = Types.class.getDeclaredFields();
-        
-        for(Field f:fields){
-            System.out.println(" " + f.getName());
-        }*/
         try {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query query = pm.createQuery();
-
+            Query<Prueba> query = pm.createQuery();
+            
+            
+            Junction or = Predicates.or(Predicates.compare("f.estado", Comparison.COMPARISON_OPERATOR.EQ_SAFENULL, 2), Predicates.isNUll("f.uuid"));
 
             query.schema("RST0").
                     select().
                     from(Factura.class, "f").
-                    join("emisorFactura", "ef1").
-                    where(Predicates.eq("ef1.id", 1476333018261L)).
+                    left("facturaSustitucion", "fs").
+                    left("emisorFactura", "ef1").
+                    left("facturaSustitucion.emisorFactura", "ef2").
+                    // where(Predicates.eq("f.folioSat", "E52BEAA6-D1E3-4BE3-82FD-304A3A12BA37")).
+                    where(or).
+                    // and(or).
                     addOrder(Order.asc("f.folioSat")).
                     addOrder(Order.desc("f.estado")).
                     setFirstResult(0).
                     setMaxResults(5);
-
-            int c = query.count();
             
-            System.out.println(" COUNT: " + c);
+            List list = query.list();
             
-           
+            System.out.println(" LIST: " + list);
+            
+            // query.schema("RST0").from().join("emisorFactura", "ef");
+            // query.schema("RST0").from().left("facturaSustitucion", "fs");
+            // query.schema("RST0").from().left("facturaSustitucion", "fs").left("emisorFactura", "ef");
         } catch (Exception e) {
             e.printStackTrace();
         }

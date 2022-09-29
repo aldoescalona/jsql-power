@@ -1,6 +1,7 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.misc;
 
 import com.telebionica.sql.power.Prueba;
+import com.telebionica.sql.test.TestPowerManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaRefreshTest {
+public class PruebaGetTest {
     
     @Test
     public void test() {
@@ -23,15 +24,8 @@ public class PruebaRefreshTest {
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
             
-            Prueba p = new Prueba();
-            p.setId(1L);
-            
-            pm.refresh("RST0", p);
-            System.out.println(" P: " + p);
-            
-            Prueba p2 = pm.get("RST0", 2L, Prueba.class);
-            System.out.println(" P: " + p2);
-            
+            Prueba prueba = pm.get("RST0", 2L, Prueba.class);
+            System.out.println(" P: " + prueba);
             
         } catch (Exception e) {
             e.printStackTrace();

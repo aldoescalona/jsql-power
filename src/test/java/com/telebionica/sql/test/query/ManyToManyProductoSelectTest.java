@@ -1,4 +1,4 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.query;
 
 import com.telebionica.risto.batch.model.Producto;
 import com.telebionica.risto.batch.model.Proveedor;
@@ -6,6 +6,7 @@ import com.telebionica.sql.order.Order;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Fetch;
 import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

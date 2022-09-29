@@ -1,10 +1,10 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.query;
 
 import com.telebionica.risto.batch.model.Factura;
-import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaSelectUniqueTest {
+public class PruebaFetchListTest {
 
     
     @Test
@@ -28,18 +28,18 @@ public class PruebaSelectUniqueTest {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
-            Query<Prueba> query = pm.createQuery();
+            Query query = pm.createQuery();
 
 
             query.schema("RST0").
                     select().
                     from(Prueba.class, "e").
                     fetch("itemPruebaList", "it").
-                    where(Predicates.between("e.id", 1, 6));
+                    where(Predicates.eq("e.id", 6));
                     
-            Prueba prueba = query.unique();
+            List<Factura> list = query.list();
             
-            System.out.println(" UNICO: " + prueba);
+            System.out.println(" LIST: " + list);
             
         } catch (Exception e) {
             e.printStackTrace();

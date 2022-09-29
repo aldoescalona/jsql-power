@@ -1,10 +1,11 @@
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.query;
 
 import com.telebionica.risto.batch.model.Factura;
 import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
 import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

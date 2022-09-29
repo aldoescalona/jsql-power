@@ -3,12 +3,13 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.update;
 
-import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
-import java.math.BigDecimal;
-import java.util.Date;
+import com.telebionica.sql.predicates.Predicates;
+import com.telebionica.sql.query.Query;
+import com.telebionica.sql.test.TestPowerManager;
+import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -16,7 +17,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaDeleteItemTest1 {
+public class PruebaUpdateTest {
     
      @Test
     public void test() {
@@ -25,13 +26,19 @@ public class PruebaDeleteItemTest1 {
 
             TestPowerManager pm = new TestPowerManager();
             pm.setMetadaSchema("RSTX");
+            Query query = pm.createQuery();
 
+            List<Prueba> list = query.schema("RST0").select().from(Prueba.class)
+                    .where(Predicates.eq("id", 1L))
+                    .list();
             
-            ItemPrueba item = new ItemPrueba();
-            item.setId(16484822842100L);
-            item.setDescripcion("Lorem ipsum dolor sit amet");
+            System.out.println(" LIST: " + list);
             
-            pm.delete("RST0", item);
+            Prueba p = list.get(0);
+            p.setDatoIntA(120);
+            
+            pm.update("RST0", p);
+            pm.update("RST0", p, "datoIntA");
             
             
         } catch (Exception e) {

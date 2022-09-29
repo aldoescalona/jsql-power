@@ -3,13 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.update;
 
 import com.telebionica.sql.power.ItemPrueba;
 import com.telebionica.sql.power.Prueba;
 import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.Query;
 import com.telebionica.sql.setu.SetsForUpdate;
+import com.telebionica.sql.test.TestPowerManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,7 @@ import org.junit.jupiter.api.Test;
  *
  * @author aldo
  */
-public class PruebaUpdate2Test {
+public class PruebaUpdateQueryTest {
     
      @Test
     public void test() {

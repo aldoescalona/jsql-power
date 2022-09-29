@@ -3,10 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.telebionica.sql.test;
+package com.telebionica.sql.test.insert;
 
 import com.telebionica.sql.power.PreuebaEnumerated;
 import com.telebionica.sql.power.Prueba;
+import com.telebionica.sql.test.TestPowerManager;
 import java.math.BigDecimal;
 import java.util.Date;
 import org.junit.jupiter.api.Assertions;
