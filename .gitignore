@@ -63,3 +63,4 @@ nbactions.xml
 *.log
 
 logs/
+/nbproject/
