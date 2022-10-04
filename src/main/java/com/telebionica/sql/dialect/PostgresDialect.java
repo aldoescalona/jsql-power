@@ -11,9 +11,9 @@ import com.telebionica.sql.power.PowerManager;
  *
  * @author aldo
  */
-public class DerbyDialect extends Dialect {
+public class PostgresDialect extends Dialect {
 
-    public DerbyDialect(PowerManager pm) {
+    public PostgresDialect(PowerManager pm) {
         super(pm);
     }
 
@@ -36,12 +36,12 @@ public class DerbyDialect extends Dialect {
 
     @Override
     public String nextVal(String schema, String seq) {
-        StringBuilder sb = new StringBuilder("VALUES NEXTVALUE FOR ");
+        StringBuilder sb = new StringBuilder("SELECT ");
         
         if(schema != null){
             sb.append(schema).append(".");
         }
-        sb.append(seq);
+        sb.append("NEXTVAL('").append(seq).append("')");
         return sb.toString();
     }
 
