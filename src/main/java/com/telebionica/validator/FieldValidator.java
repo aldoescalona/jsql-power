@@ -1,9 +1,6 @@
 package com.telebionica.validator;
 
 import com.telebionica.validator.ann.AnnotationUtil;
-import com.telebionica.sql.power.PowerManager;
-import com.telebionica.sql.predicates.Predicates;
-import com.telebionica.sql.query.Query;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -66,6 +63,7 @@ public class FieldValidator {
     public void setTipo(Class<?> tipo) {
         this.tipo = tipo;
     }
+    
 
     public List<Message> validate(Class<?> grupo) throws Exception {
         List<Message> msgs = new ArrayList<Message>();
@@ -73,12 +71,8 @@ public class FieldValidator {
         if (AnnotationUtil.tieneNotNull(field, grupo)) {
             if (getValor() == null) {
                 NotNull ann = field.getAnnotation(NotNull.class);
-
-                if (ann.message() == null || ann.message().startsWith("{javax.validation.constraints")) {
-                    msgs.add(new Message(String.format("%s.%s.NotNull", objeto.getClass().getSimpleName(), field.getName())));
-                } else {
-                    msgs.add(new Message(ann.message()));
-                }
+                String key = Validator.noramalizeKeyMessage(ann.message(), objeto.getClass().getSimpleName(), field.getName(), "NotNull");
+                msgs.add(new Message(key));
             }
         }
 
@@ -90,7 +84,9 @@ public class FieldValidator {
             if (getValor() instanceof String) {
                 String val = (String) valor;
                 if (val.length() < min || val.length() > max) {
-                    msgs.add(new Message(ann.message(), valor, min, max));
+                    // msgs.add(new Message(ann.message(), valor, min, max));
+                    String key = Validator.noramalizeKeyMessage(ann.message(), objeto.getClass().getSimpleName(), field.getName(), "Size");
+                    msgs.add(new Message(key, valor, min, max));
                 }
             }
 
@@ -106,7 +102,8 @@ public class FieldValidator {
 
                 Matcher matcher = pattern.matcher(val);
                 if (!matcher.matches()) {
-                    msgs.add(new Message(ann.message(), valor));
+                    String key = Validator.noramalizeKeyMessage(ann.message(), objeto.getClass().getSimpleName(), field.getName(), "Pattern");
+                    msgs.add(new Message(key, valor));
                 }
             }
         }

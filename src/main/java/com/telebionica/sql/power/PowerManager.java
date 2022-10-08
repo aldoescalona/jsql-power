@@ -30,6 +30,7 @@ import com.telebionica.sql.util.Generator;
 import com.telebionica.validator.ann.AnnotationUtil;
 import com.telebionica.validator.Message;
 import com.telebionica.validator.Messages;
+import com.telebionica.validator.Validator;
 import com.telebionica.validator.ann.Unique;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -320,7 +321,7 @@ public abstract class PowerManager {
                         param.getter(e);
                         whereParams.add(param);
 
-                        not.add(Predicates.eq(ct.getColumnName(), param.getValue()));
+                        not.add(Predicates.eq(ct.getFieldName(), param.getValue()));
                     }
                    
                 }
@@ -341,11 +342,9 @@ public abstract class PowerManager {
                 int c = query.count(conn);
 
                 if (c > 0) {
-                    if (ann.message() == null || ann.message().startsWith("{javax.validation.constraints")) {
-                        msgs.add(new Message(String.format("%s.%s.NotNull", e.getClass().getSimpleName(), scopeField.getName())));
-                    } else {
-                        msgs.add(new Message(ann.message()));
-                    }
+                    
+                    String key = Validator.noramalizeKeyMessage(ann.message(), e.getClass().getSimpleName(), scopeField.getName(), "Unique");
+                    msgs.add(new Message(key));
 
                     Messages messages = new Messages(scopeField.getName(), msgs);
                     messagesList.add(messages);

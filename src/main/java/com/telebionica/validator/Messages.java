@@ -6,7 +6,7 @@ public class Messages {
 
     private String fieldName;
     private List<Message> messages;
-
+    
     public Messages(String fieldName, List<Message> messages) {
         this.fieldName = fieldName;
         this.messages = messages;

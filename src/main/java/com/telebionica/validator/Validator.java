@@ -1,13 +1,8 @@
 package com.telebionica.validator;
 
 import java.lang.reflect.Field;
-import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -15,7 +10,6 @@ public class Validator {
 
     private static final Logger logger = Logger.getLogger(Validator.class.getName());
 
-    
 
     private Object doubtObject;
     private Class group;
@@ -78,6 +72,17 @@ public class Validator {
     
     public List<Messages> translate(String locale){
         return Brocal.translate(messagesList, locale);
+    }
+    
+    public static String noramalizeKeyMessage(String org, String className, String fieldName, String annName){
+        
+        String normal;
+        if(org.startsWith("{javax.validation.constraints")){
+            normal = String.format("%s.%s.%s", className, fieldName, annName);
+        } else {
+            normal = org;
+        }
+        return normal;
     }
     
 }
