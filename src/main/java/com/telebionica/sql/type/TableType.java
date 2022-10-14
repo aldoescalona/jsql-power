@@ -116,7 +116,7 @@ public class TableType {
     }
     
     public List<ColumnType> getIdColumns(){
-        List<ColumnType> ids = columns.stream().filter(e -> e.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = columns.stream().filter(e -> e.isPrimary() || e.isEmbedded()).collect(Collectors.toList());
         return ids;
     }
     

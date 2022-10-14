@@ -102,57 +102,81 @@ public class PowerColumnType {
 
     public boolean push(Object target, ResultSet rs) throws PowerQueryException {
 
-        Object any = null;
+        boolean any = false;
         try {
-            Method m = columnType.getWriteMethod();
-            if (columnType.getFieldClass().isAssignableFrom(Long.class) || columnType.getFieldClass().isAssignableFrom(long.class)) {
-                Long obj = JDBCUtil.getLong(rs, columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Integer.class) || columnType.getFieldClass().isAssignableFrom(int.class)) {
-                Integer obj = JDBCUtil.getInteger(rs, columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Float.class) || columnType.getFieldClass().isAssignableFrom(float.class)) {
-                Float obj = JDBCUtil.getFloat(rs, columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Double.class) || columnType.getFieldClass().isAssignableFrom(double.class)) {
-                Double obj = JDBCUtil.getDouble(rs, columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Boolean.class) || columnType.getFieldClass().isAssignableFrom(boolean.class)) {
-                Boolean obj = JDBCUtil.getBoolean(rs, columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(String.class)) {
-                String obj = rs.getString(columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(BigDecimal.class)) {
-                BigDecimal obj = rs.getBigDecimal(columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.getFieldClass().isAssignableFrom(Date.class)) {
-                Date obj = rs.getTimestamp(columnAlias);
-                m.invoke(target, obj);
-                any = obj;
-            } else if (columnType.hasEnumerated() && columnType.getFieldClass().isEnum()) {
-                Integer ordinal = JDBCUtil.getInteger(rs, columnAlias);
-                if (ordinal != null) {
-                    Object[] enus = columnType.getFieldClass().getEnumConstants();
-                    Object obj = enus[ordinal];
-                    m.invoke(target, obj);
-                    any = obj;
+
+            if (columnType.isEmbedded()) {
+                Method rem = columnType.getEmbeddedReadMethod();
+                Object emtarget = rem.invoke(target);
+
+                if (emtarget == null) {
+                    emtarget = columnType.getEmbeddedFieldClass().getConstructor().newInstance();
+                    Method em = columnType.getEmbeddedWriteMethod();
+                    em.invoke(target, emtarget);
                 }
+
+                Method m = columnType.getEmbeddedIdWriteMethod();
+                any = inject(m, emtarget, rs);
             } else {
-                throw new PowerQueryException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
+
+                Method m = columnType.getWriteMethod();
+                any = inject(m, target, rs);
             }
 
-        } catch (SQLException | IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+        } catch (Exception e) {
             throw new PowerQueryException(e);
         }
 
+        return any;
+    }
+
+    private boolean inject(Method m, Object target, ResultSet rs) throws Exception {
+        
+        Object any = null;
+        
+        if (columnType.getFieldClass().isAssignableFrom(Long.class) || columnType.getFieldClass().isAssignableFrom(long.class)) {
+            Long obj = JDBCUtil.getLong(rs, columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(Integer.class) || columnType.getFieldClass().isAssignableFrom(int.class)) {
+            Integer obj = JDBCUtil.getInteger(rs, columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(Float.class) || columnType.getFieldClass().isAssignableFrom(float.class)) {
+            Float obj = JDBCUtil.getFloat(rs, columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(Double.class) || columnType.getFieldClass().isAssignableFrom(double.class)) {
+            Double obj = JDBCUtil.getDouble(rs, columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(Boolean.class) || columnType.getFieldClass().isAssignableFrom(boolean.class)) {
+            Boolean obj = JDBCUtil.getBoolean(rs, columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(String.class)) {
+            String obj = rs.getString(columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(BigDecimal.class)) {
+            BigDecimal obj = rs.getBigDecimal(columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.getFieldClass().isAssignableFrom(Date.class)) {
+            Date obj = rs.getTimestamp(columnAlias);
+            m.invoke(target, obj);
+            any = obj;
+        } else if (columnType.hasEnumerated() && columnType.getFieldClass().isEnum()) {
+            Integer ordinal = JDBCUtil.getInteger(rs, columnAlias);
+            if (ordinal != null) {
+                Object[] enus = columnType.getFieldClass().getEnumConstants();
+                Object obj = enus[ordinal];
+                m.invoke(target, obj);
+                any = obj;
+            }
+        } else {
+            throw new PowerQueryException("No hay definido un mapa de conversion de esta clase " + columnType.getFieldClass() + " " + columnType.getColumnName());
+        }
         return any != null;
     }
 
@@ -224,8 +248,20 @@ public class PowerColumnType {
 
     public void getter(Object obj) throws PowerQueryException {
         try {
-            Method m = columnType.getReadMethod();
-            this.value = m.invoke(obj);
+
+            if (columnType.isEmbedded()) {
+                Method em = columnType.getEmbeddedReadMethod();
+                Object o = em.invoke(obj);
+
+                if (o != null) {
+                    Method m = columnType.getEmbeddedIdReadMethod();
+                    this.value = m.invoke(o);
+                }
+            } else {
+                Method m = columnType.getReadMethod();
+                this.value = m.invoke(obj);
+            }
+
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
             throw new PowerQueryException(e);
         }

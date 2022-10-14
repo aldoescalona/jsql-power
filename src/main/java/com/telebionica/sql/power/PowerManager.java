@@ -5,6 +5,8 @@
  */
 package com.telebionica.sql.power;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.dialect.Dialect;
 import com.telebionica.sql.join.Join;
@@ -40,6 +42,7 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -62,6 +65,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -84,6 +88,7 @@ public abstract class PowerManager {
 
     private String metadaSchema;
     private boolean debugSQL = Boolean.FALSE;
+    private boolean debugConfig = Boolean.FALSE;
     private final Map<Class, TableType> tableTypeMap = new HashMap<>();
     private final Map<String, Generator> generatorMap = new HashMap<>();
     private Dialect dialect = null;
@@ -311,8 +316,10 @@ public abstract class PowerManager {
 
                 if (exclusive) {
                     not = new Not(Junction.JUNCTION_TYPE.AND);
-                    List<ColumnType> ids = tableType.getColumns();
-                    ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+                    List<ColumnType> ids = tableType.getIdColumns();
+                    // tableType.getColumns();
+                    // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
+                    
 
                     List<PowerColumnType> whereParams = new ArrayList();
                     for (ColumnType ct : ids) {
@@ -323,7 +330,7 @@ public abstract class PowerManager {
 
                         not.add(Predicates.eq(ct.getFieldName(), param.getValue()));
                     }
-                   
+
                 }
 
                 ColumnType ct = tableType.getFieldColumnType(scopeField.getName());
@@ -342,7 +349,7 @@ public abstract class PowerManager {
                 int c = query.count(conn);
 
                 if (c > 0) {
-                    
+
                     String key = Validator.noramalizeKeyMessage(ann.message(), e.getClass().getSimpleName(), scopeField.getName(), "Unique");
                     msgs.add(new Message(key));
 
@@ -670,31 +677,27 @@ public abstract class PowerManager {
         sb.append(" SET ");
 
         List<PowerColumnType> orderParams = new ArrayList();
-        Iterator<PowerColumnType> colIt = updateParams.stream().filter(c -> !c.getColumnType().isPrimary()).collect(Collectors.toList()).iterator();
+        Iterator<PowerColumnType> colIt = updateParams.stream().filter(c -> !(c.getColumnType().isPrimary() || c.getColumnType().isEmbedded())).collect(Collectors.toList()).iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (!ct.getColumnType().isPrimary()) {
-                sb.append(ct.getColumnAlias());
-                sb.append(" = ?");
-                orderParams.add(ct);
-                if (colIt.hasNext()) {
-                    sb.append(", ");
+            sb.append(ct.getColumnAlias());
+            sb.append(" = ?");
+            orderParams.add(ct);
+            if (colIt.hasNext()) {
+                sb.append(", ");
 
-                }
             }
         }
 
-        colIt = updateParams.stream().filter(c -> c.getColumnType().isPrimary()).collect(Collectors.toList()).iterator();
+        colIt = updateParams.stream().filter(c -> c.getColumnType().isPrimary() || c.getColumnType().isEmbedded()).collect(Collectors.toList()).iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
-                sbvalues.append(ct.getColumnAlias());
-                sbvalues.append(" = ?");
-                orderParams.add(ct);
-                if (colIt.hasNext()) {
-                    sbvalues.append(" AND ");
+            sbvalues.append(ct.getColumnAlias());
+            sbvalues.append(" = ?");
+            orderParams.add(ct);
+            if (colIt.hasNext()) {
+                sbvalues.append(" AND ");
 
-                }
             }
         }
 
@@ -737,8 +740,8 @@ public abstract class PowerManager {
         Class entityClass = e.getClass();
         TableType tableType = this.getTableType(entityClass, conn);
 
-        List<ColumnType> ids = tableType.getColumns();
-        ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = tableType.getIdColumns();
+        // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
         List<PowerColumnType> whereParams = new ArrayList();
         for (ColumnType ct : ids) {
@@ -763,7 +766,7 @@ public abstract class PowerManager {
         Iterator<PowerColumnType> colIt = whereParams.iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
+            if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                 sbvalues.append(ct.getColumnAlias());
                 sbvalues.append(" = ?");
                 orderParams.add(ct);
@@ -823,8 +826,8 @@ public abstract class PowerManager {
             return sct;
         }).collect(Collectors.toList());
 
-        List<ColumnType> ids = tableType.getColumns();
-        ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = tableType.getIdColumns();
+        // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
         List<PowerColumnType> whereParams = new ArrayList();
         for (ColumnType ct : ids) {
@@ -863,7 +866,7 @@ public abstract class PowerManager {
         Iterator<PowerColumnType> colIt = whereParams.iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
+            if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                 sb.append(ct.getColumnAlias());
                 sb.append(" = ?");
                 if (colIt.hasNext()) {
@@ -900,9 +903,9 @@ public abstract class PowerManager {
     }
 
     public <E> E get(Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
-        return get(null, id,entityClass, columnNames);
+        return get(null, id, entityClass, columnNames);
     }
-    
+
     public <E> E get(String schema, Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
         try ( Connection conn = getConnection()) {
             return get(schema, id, entityClass, conn, columnNames);
@@ -910,7 +913,7 @@ public abstract class PowerManager {
             throw new PowerQueryException(ex);
         }
     }
-    
+
     public <E> E get(Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws PowerQueryException {
         return get(null, id, entityClass, conn, columnNames);
     }
@@ -927,8 +930,8 @@ public abstract class PowerManager {
             return sct;
         }).collect(Collectors.toList());
 
-        List<ColumnType> ids = tableType.getColumns();
-        ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = tableType.getIdColumns();
+        // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
         List<PowerColumnType> whereParams = new ArrayList();
         for (ColumnType ct : ids) {
@@ -968,7 +971,7 @@ public abstract class PowerManager {
         Iterator<PowerColumnType> colIt = whereParams.iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
+            if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                 sb.append(ct.getColumnAlias());
                 sb.append(" = ?");
                 if (colIt.hasNext()) {
@@ -1101,13 +1104,14 @@ public abstract class PowerManager {
         tableType.setManyToManyTypes(manyToManyTypes);
         tableType.setOneToManyTypes(oneToManyTypes);
 
+        if (debugConfig) {
+            Gson gson = new GsonBuilder()
+                    .excludeFieldsWithModifiers(Modifier.PROTECTED)
+                    .setPrettyPrinting().create();
+            String json = gson.toJson(tableType);
+            System.out.println("TablaType " + json);
+        }
 
-        /*Gson gson = new GsonBuilder()
-                .excludeFieldsWithModifiers(Modifier.PROTECTED)
-                .setPrettyPrinting().create();
-        String json = gson.toJson(tableType);
-
-        System.out.println("TablaType " + json);*/
         return tableType;
     }
 
@@ -1133,6 +1137,26 @@ public abstract class PowerManager {
             ct.setEnumerated(enu);
 
             columns.add(ct);
+        }
+
+        EmbeddedId eidann = field.getAnnotation(EmbeddedId.class);
+
+        if (eidann != null) {
+
+            Field[] idfields = field.getType().getDeclaredFields();
+
+            for (Field farid : idfields) {
+
+                Column farann = farid.getAnnotation(Column.class);
+                if (farann != null) {
+                    ColumnType ct = new ColumnType(farann.name(), farid.getName(), farid.getType(), tableType);
+                    ct.setPrimary(false);
+                    ct.setEmbedded(true);
+                    ct.setEmbeddedFieldName(field.getName());
+                    ct.setEmbeddedFieldClass(field.getType());
+                    columns.add(ct);
+                }
+            }
         }
     }
 
@@ -1984,8 +2008,8 @@ public abstract class PowerManager {
                 }
             }
 
-            List<ColumnType> ids = tableType.getColumns();
-            ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+            List<ColumnType> ids = tableType.getIdColumns();
+            // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
             for (ColumnType ct : ids) {
                 PowerColumnType param = new PowerColumnType(ct);
@@ -1997,7 +2021,7 @@ public abstract class PowerManager {
             Iterator<PowerColumnType> colIt = params.iterator();
             while (colIt.hasNext()) {
                 PowerColumnType ct = colIt.next();
-                if (ct.getColumnType().isPrimary()) {
+                if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                     sb.append("_e.").append(ct.getColumnAlias());
                     sb.append(" = ?");
                     if (colIt.hasNext()) {
@@ -2086,8 +2110,8 @@ public abstract class PowerManager {
                 }
             }
 
-            List<ColumnType> ids = tableType.getColumns();
-            ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+            List<ColumnType> ids = tableType.getIdColumns();
+            // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
             for (ColumnType ct : ids) {
                 PowerColumnType param = new PowerColumnType(ct);
@@ -2099,7 +2123,7 @@ public abstract class PowerManager {
             Iterator<PowerColumnType> colIt = params.iterator();
             while (colIt.hasNext()) {
                 PowerColumnType ct = colIt.next();
-                if (ct.getColumnType().isPrimary()) {
+                if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                     sb.append("_e.").append(ct.getColumnAlias());
                     sb.append(" = ?");
                     if (colIt.hasNext()) {
@@ -2286,6 +2310,14 @@ public abstract class PowerManager {
 
     public void setDebugSQL(boolean debugSQL) {
         this.debugSQL = debugSQL;
+    }
+
+    public boolean isDebugConfig() {
+        return debugConfig;
+    }
+
+    public void setDebugConfig(boolean debugConfig) {
+        this.debugConfig = debugConfig;
     }
 
     private String logs(String query, List<PowerColumnType> params) {
