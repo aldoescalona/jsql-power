@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0" xsi:schemaLocation="http://java.sun.com/xml/ns/persistence http://java.sun.com/xml/ns/persistence/persistence_2_0.xsd">
+    <persistence-unit name="cei_PU" transaction-type="JTA">
+        <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+        <jta-data-source>jdbc/CEI</jta-data-source>
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+        <properties>
+        	<property name="eclipselink.cache.shared.default" value="false"/>
+			<property name="eclipselink.cache.size.default" value="0"/>
+			<property name="eclipselink.cache.type.default" value="None"/>
+			<property name="eclipselink.logging.level.sql" value="FINE"/>
+     		<property name="eclipselink.logging.parameters" value="true"/>
+     		<property name="eclipselink.logging.logger" value="ServerLogger"/>
+     		<property name="eclipselink.logging.level" value="ALL"/>
+     		<property name="eclipselink.allow-zero-id" value="true"/> 
+        </properties>
+    </persistence-unit>
+</persistence>

@@ -28,6 +28,9 @@ public class ColumnType {
     private GeneratorType generatorType;
     protected Enumerated enumerated;
     
+    private boolean embedded;
+    private String embeddedFieldName;
+    protected Class embeddedFieldClass; 
     
     protected TableType tableType;
 
@@ -109,6 +112,34 @@ public class ColumnType {
     public boolean hasEnumerated(){
         return enumerated != null;
     }
+
+    public boolean isEmbedded() {
+        return embedded;
+    }
+
+    public void setEmbedded(boolean embedded) {
+        this.embedded = embedded;
+    }
+
+    public String getEmbeddedFieldName() {
+        return embeddedFieldName;
+    }
+
+    public void setEmbeddedFieldName(String embeddedFieldName) {
+        this.embeddedFieldName = embeddedFieldName;
+    }
+
+    public Class getEmbeddedFieldClass() {
+        return embeddedFieldClass;
+    }
+
+    public void setEmbeddedFieldClass(Class embeddedFieldClass) {
+        this.embeddedFieldClass = embeddedFieldClass;
+    }
+
+    
+    
+    
     
     public Method getWriteMethod() throws IntrospectionException {
         BeanInfo beanInfo = Introspector.getBeanInfo(tableType.getEntityClass());
@@ -120,9 +151,53 @@ public class ColumnType {
         }
         return null;
     }
+    
+    public Method getEmbeddedWriteMethod() throws IntrospectionException {
+        BeanInfo beanInfo = Introspector.getBeanInfo(tableType.getEntityClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            if (pd.getName().equalsIgnoreCase(embeddedFieldName)) {
+                return pd.getWriteMethod();
+            }
+        }
+        return null;
+    }
+    
+    public Method getEmbeddedIdWriteMethod() throws IntrospectionException {
+        BeanInfo beanInfo = Introspector.getBeanInfo(embeddedFieldClass);
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            if (pd.getName().equalsIgnoreCase(fieldName)) {
+                return pd.getWriteMethod();
+            }
+        }
+        return null;
+    }
 
     public Method getReadMethod() throws IntrospectionException {
         BeanInfo beanInfo = Introspector.getBeanInfo(tableType.getEntityClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            if (pd.getName().equalsIgnoreCase(fieldName)) {
+                return pd.getReadMethod();
+            }
+        }
+        return null;
+    }
+    
+    public Method getEmbeddedReadMethod() throws IntrospectionException {
+        BeanInfo beanInfo = Introspector.getBeanInfo(tableType.getEntityClass());
+        PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
+        for (PropertyDescriptor pd : propertyDescriptors) {
+            if (pd.getName().equalsIgnoreCase(embeddedFieldName)) {
+                return pd.getReadMethod();
+            }
+        }
+        return null;
+    }
+    
+    public Method getEmbeddedIdReadMethod() throws IntrospectionException {
+        BeanInfo beanInfo = Introspector.getBeanInfo(embeddedFieldClass);
         PropertyDescriptor[] propertyDescriptors = beanInfo.getPropertyDescriptors();
         for (PropertyDescriptor pd : propertyDescriptors) {
             if (pd.getName().equalsIgnoreCase(fieldName)) {

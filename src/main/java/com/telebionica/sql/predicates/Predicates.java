@@ -15,6 +15,10 @@ public class Predicates {
         return new Eq(colname, value);
     }
     
+     public static NotEq ne(String colname, Object value) {
+        return new NotEq(colname, value);
+    }
+    
     public static Ge ge(String colname, Object value) {
         return new Ge(colname, value);
     }
@@ -51,11 +55,23 @@ public class Predicates {
         return new Or(p1, p2, pn);
     }
     
+    public static And and(Predicate p1, Predicate p2, Predicate... pn) {
+        return new And(p1, p2, pn);
+    }
+    
+    public static Not not(Junction.JUNCTION_TYPE junction_type, Predicate... pn) {
+        return new Not(junction_type, pn);
+    }
+    
     public static RawPredicate rawPredicate(String raw) {
         return new RawPredicate(raw);
     }
     
     public static EqEntity eqEntity(String colname, Object obj) {
         return new EqEntity(colname, obj);
+    }
+    
+    public static Like like(String colname, Object value, Like.MATCH_MODE match_mode) {
+        return new Like(colname, value, match_mode);
     }
 }

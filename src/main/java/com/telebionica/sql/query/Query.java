@@ -10,6 +10,7 @@ import com.telebionica.sql.order.Order;
 import com.telebionica.sql.join.Join;
 import com.telebionica.sql.power.PowerManager;
 import com.telebionica.sql.setu.SetForUpdate;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,7 +44,7 @@ public class Query<E> {
         this.powerManager = powerManager;
     }
 
-    public Query schema(String schema) throws PowerQueryException {
+    public Query<E> schema(String schema) throws PowerQueryException {
         this.schema = schema;
         return this;
     }
@@ -179,6 +180,10 @@ public class Query<E> {
 
     public Integer count() throws PowerQueryException {
         return powerManager.count(this);
+    }
+    
+    public Integer count(Connection conn) throws PowerQueryException {
+        return powerManager.count(this, conn);
     }
 
     public int execute() throws PowerQueryException {

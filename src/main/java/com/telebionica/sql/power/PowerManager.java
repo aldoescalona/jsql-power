@@ -5,11 +5,16 @@
  */
 package com.telebionica.sql.power;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.telebionica.sql.data.PowerColumnType;
 import com.telebionica.sql.dialect.Dialect;
 import com.telebionica.sql.join.Join;
 import com.telebionica.sql.order.Order;
+import com.telebionica.sql.predicates.Junction;
+import com.telebionica.sql.predicates.Not;
 import com.telebionica.sql.predicates.Predicate;
+import com.telebionica.sql.predicates.Predicates;
 import com.telebionica.sql.query.CollectionParametrizedQuery;
 import com.telebionica.sql.query.Fetch;
 import com.telebionica.sql.query.JoinNode;
@@ -24,6 +29,11 @@ import com.telebionica.sql.type.ManyToManyType;
 import com.telebionica.sql.type.JoinColumnsType;
 import com.telebionica.sql.type.TableType;
 import com.telebionica.sql.util.Generator;
+import com.telebionica.validator.ann.AnnotationUtil;
+import com.telebionica.validator.Message;
+import com.telebionica.validator.Messages;
+import com.telebionica.validator.Validator;
+import com.telebionica.validator.ann.Unique;
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -32,6 +42,7 @@ import java.io.Serializable;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -54,6 +65,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -76,6 +88,7 @@ public abstract class PowerManager {
 
     private String metadaSchema;
     private boolean debugSQL = Boolean.FALSE;
+    private boolean debugConfig = Boolean.FALSE;
     private final Map<Class, TableType> tableTypeMap = new HashMap<>();
     private final Map<String, Generator> generatorMap = new HashMap<>();
     private Dialect dialect = null;
@@ -94,7 +107,7 @@ public abstract class PowerManager {
     }
 
     public int insert(String schema, Object e) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return insert(schema, e, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -124,7 +137,7 @@ public abstract class PowerManager {
                     autos.add(auto);
                 } else if (gt.getStrategy() == GenerationType.SEQUENCE) {
                     String seqQueryString = dialect.nextVal(schema, gt.getGenerator());
-                    try (PreparedStatement pstm = conn.prepareStatement(seqQueryString); ResultSet rs = pstm.executeQuery()) {
+                    try ( PreparedStatement pstm = conn.prepareStatement(seqQueryString);  ResultSet rs = pstm.executeQuery()) {
                         if (rs.next()) {
                             PowerColumnType secpow = new PowerColumnType(ct);
                             secpow.setColumnAlias(ct.getColumnName());
@@ -226,7 +239,7 @@ public abstract class PowerManager {
             pstm.executeUpdate();
 
             if (!autos.isEmpty()) {
-                try (ResultSet rs = pstm.getGeneratedKeys()) {
+                try ( ResultSet rs = pstm.getGeneratedKeys()) {
                     int index = 1;
                     for (PowerColumnType auto : autos) {
                         if (rs.next()) {
@@ -251,6 +264,112 @@ public abstract class PowerManager {
         return 0;
     }
 
+    public List<Messages> validateToInsert(Object e, Class<?> group) throws PowerQueryException {
+        return validateToInsert(null, e, group);
+    }
+
+    public List<Messages> validateToInsert(String schema, Object e, Class<?> group) throws PowerQueryException {
+        try ( Connection conn = getConnection()) {
+            return validateToInsert(schema, e, group, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
+        }
+    }
+
+    public List<Messages> validateToInsert(String schema, Object e, Class<?> group, Connection conn) throws PowerQueryException {
+        return validate(schema, e, group, false, conn);
+    }
+
+    public List<Messages> validateToUpdate(Object e, Class<?> group) throws PowerQueryException {
+        return validateToUpdate(null, e, group);
+    }
+
+    public List<Messages> validateToUpdate(String schema, Object e, Class<?> group) throws PowerQueryException {
+        try ( Connection conn = getConnection()) {
+            return validateToUpdate(schema, e, group, conn);
+        } catch (SQLException ex) {
+            throw new PowerQueryException(ex);
+        }
+    }
+
+    public List<Messages> validateToUpdate(String schema, Object e, Class<?> group, Connection conn) throws PowerQueryException {
+        return validate(schema, e, group, true, conn);
+    }
+
+    public List<Messages> validate(String schema, Object e, Class<?> group, boolean exclusive, Connection conn) throws PowerQueryException {
+
+        List<Message> rootMessages = new ArrayList<Message>();
+        List<Messages> messagesList = new ArrayList();
+
+        Class<?> theclass = e.getClass();
+        TableType tableType = this.getTableType(theclass, conn);
+
+        Field[] scopeFields = theclass.getDeclaredFields();
+        for (Field scopeField : scopeFields) {
+
+            if (AnnotationUtil.tieneUnico(scopeField, group)) {
+
+                Unique ann = scopeField.getAnnotation(Unique.class);
+                List<Message> msgs = new ArrayList<Message>();
+
+                Not not = null;
+
+                if (exclusive) {
+                    not = new Not(Junction.JUNCTION_TYPE.AND);
+                    List<ColumnType> ids = tableType.getIdColumns();
+                    // tableType.getColumns();
+                    // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
+                    
+
+                    List<PowerColumnType> whereParams = new ArrayList();
+                    for (ColumnType ct : ids) {
+                        PowerColumnType param = new PowerColumnType(ct);
+                        param.setColumnAlias(ct.getColumnName());
+                        param.getter(e);
+                        whereParams.add(param);
+
+                        not.add(Predicates.eq(ct.getFieldName(), param.getValue()));
+                    }
+
+                }
+
+                ColumnType ct = tableType.getFieldColumnType(scopeField.getName());
+
+                PowerColumnType param = new PowerColumnType(ct);
+                param.getter(e);
+
+                Query query = createQuery();
+                query.schema(schema).select().
+                        from(theclass);
+                query.where(Predicates.eq(scopeField.getName(), param.getValue()));
+                if (not != null) {
+                    query.and(not);
+                }
+
+                int c = query.count(conn);
+
+                if (c > 0) {
+
+                    String key = Validator.noramalizeKeyMessage(ann.message(), e.getClass().getSimpleName(), scopeField.getName(), "Unique");
+                    msgs.add(new Message(key));
+
+                    Messages messages = new Messages(scopeField.getName(), msgs);
+                    messagesList.add(messages);
+                }
+
+                System.out.println(" C: " + c);
+            }
+
+        }
+
+        if (!rootMessages.isEmpty()) {
+            Messages messages = new Messages("root", rootMessages);
+            messagesList.add(messages);
+        }
+
+        return messagesList;
+    }
+
     public <E> List<E> transform(String query, Class<E> target, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Connection conn) throws PowerQueryException {
 
         TableType tableType = getTableType(target);
@@ -258,13 +377,13 @@ public abstract class PowerManager {
         List<PowerColumnType> columns = new ArrayList();
 
         List<E> list = new ArrayList();
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+        try ( PreparedStatement pstmt = conn.prepareStatement(query)) {
 
             if (fun != null) {
                 fun.apply(pstmt);
             }
 
-            try (ResultSet rs = pstmt.executeQuery()) {
+            try ( ResultSet rs = pstmt.executeQuery()) {
                 ResultSetMetaData md = rs.getMetaData();
                 int columnCount = md.getColumnCount();
                 for (int index = 1; index <= columnCount; index++) {
@@ -304,7 +423,7 @@ public abstract class PowerManager {
     }
 
     public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Class<E> target) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return transform(query, target, transformtype, null, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -312,7 +431,7 @@ public abstract class PowerManager {
     }
 
     public <E> List<E> transform(String query, TRANSFORMTYPE transformtype, Function<PreparedStatement, Void> fun, Class<E> target) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return transform(query, target, transformtype, fun, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -320,7 +439,7 @@ public abstract class PowerManager {
     }
 
     public <E> List<E> transform(String query, Function<PreparedStatement, Void> fun, Class<E> target) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return transform(query, target, null, fun, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -328,7 +447,7 @@ public abstract class PowerManager {
     }
 
     public <E> List<E> transform(String query, Class<E> target) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return transform(query, target, null, null, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -353,7 +472,7 @@ public abstract class PowerManager {
     }
 
     public <E> int replace(String schema, Object ent, String manyToManyField, List<E> list) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return replace(schema, ent, manyToManyField, list, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -454,7 +573,7 @@ public abstract class PowerManager {
             logger.log(Level.INFO, q);
         }
 
-        try (PreparedStatement delStmt = conn.prepareStatement(deletesb.toString())) {
+        try ( PreparedStatement delStmt = conn.prepareStatement(deletesb.toString())) {
             int i = 1;
             for (PowerColumnType powerValue : deleteParams) {
                 powerValue.powerStatement(delStmt, i++);
@@ -469,7 +588,7 @@ public abstract class PowerManager {
             String q = logs(insertsb.toString(), fullParams);
             logger.log(Level.INFO, q);
         }
-        try (PreparedStatement insertStmt = conn.prepareStatement(insertsb.toString())) {
+        try ( PreparedStatement insertStmt = conn.prepareStatement(insertsb.toString())) {
 
             for (E obj : list) {
                 for (PowerColumnType pct : insertParams) {
@@ -497,7 +616,7 @@ public abstract class PowerManager {
     }
 
     public int update(String schema, Object e, String... fields) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return update(schema, e, conn, fields);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -558,31 +677,27 @@ public abstract class PowerManager {
         sb.append(" SET ");
 
         List<PowerColumnType> orderParams = new ArrayList();
-        Iterator<PowerColumnType> colIt = updateParams.stream().filter(c -> !c.getColumnType().isPrimary()).collect(Collectors.toList()).iterator();
+        Iterator<PowerColumnType> colIt = updateParams.stream().filter(c -> !(c.getColumnType().isPrimary() || c.getColumnType().isEmbedded())).collect(Collectors.toList()).iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (!ct.getColumnType().isPrimary()) {
-                sb.append(ct.getColumnAlias());
-                sb.append(" = ?");
-                orderParams.add(ct);
-                if (colIt.hasNext()) {
-                    sb.append(", ");
+            sb.append(ct.getColumnAlias());
+            sb.append(" = ?");
+            orderParams.add(ct);
+            if (colIt.hasNext()) {
+                sb.append(", ");
 
-                }
             }
         }
 
-        colIt = updateParams.stream().filter(c -> c.getColumnType().isPrimary()).collect(Collectors.toList()).iterator();
+        colIt = updateParams.stream().filter(c -> c.getColumnType().isPrimary() || c.getColumnType().isEmbedded()).collect(Collectors.toList()).iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
-                sbvalues.append(ct.getColumnAlias());
-                sbvalues.append(" = ?");
-                orderParams.add(ct);
-                if (colIt.hasNext()) {
-                    sbvalues.append(" AND ");
+            sbvalues.append(ct.getColumnAlias());
+            sbvalues.append(" = ?");
+            orderParams.add(ct);
+            if (colIt.hasNext()) {
+                sbvalues.append(" AND ");
 
-                }
             }
         }
 
@@ -593,7 +708,7 @@ public abstract class PowerManager {
 
         // System.out.println(" UPDATE QUERY: " + query);
         int c;
-        try (PreparedStatement pstm = conn.prepareStatement(query)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(query)) {
 
             int i = 1;
             for (PowerColumnType powerValue : orderParams) {
@@ -613,7 +728,7 @@ public abstract class PowerManager {
     }
 
     public int delete(String schema, Object e) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return delete(schema, e, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -625,8 +740,8 @@ public abstract class PowerManager {
         Class entityClass = e.getClass();
         TableType tableType = this.getTableType(entityClass, conn);
 
-        List<ColumnType> ids = tableType.getColumns();
-        ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = tableType.getIdColumns();
+        // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
         List<PowerColumnType> whereParams = new ArrayList();
         for (ColumnType ct : ids) {
@@ -651,7 +766,7 @@ public abstract class PowerManager {
         Iterator<PowerColumnType> colIt = whereParams.iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
+            if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                 sbvalues.append(ct.getColumnAlias());
                 sbvalues.append(" = ?");
                 orderParams.add(ct);
@@ -672,7 +787,7 @@ public abstract class PowerManager {
             logger.log(Level.INFO, q);
         }
         int c;
-        try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
             for (PowerColumnType powerValue : orderParams) {
@@ -691,7 +806,7 @@ public abstract class PowerManager {
     }
 
     public void refresh(String schema, Object e, String... columnNames) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             refresh(schema, e, conn, columnNames);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -711,8 +826,8 @@ public abstract class PowerManager {
             return sct;
         }).collect(Collectors.toList());
 
-        List<ColumnType> ids = tableType.getColumns();
-        ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = tableType.getIdColumns();
+        // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
         List<PowerColumnType> whereParams = new ArrayList();
         for (ColumnType ct : ids) {
@@ -751,7 +866,7 @@ public abstract class PowerManager {
         Iterator<PowerColumnType> colIt = whereParams.iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
+            if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                 sb.append(ct.getColumnAlias());
                 sb.append(" = ?");
                 if (colIt.hasNext()) {
@@ -768,13 +883,13 @@ public abstract class PowerManager {
         }
 
         // System.out.println(" refresh QUERY: " + queryString);
-        try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
             for (PowerColumnType powerValue : whereParams) {
                 powerValue.powerStatement(pstm, i++);
             }
-            try (ResultSet rs = pstm.executeQuery()) {
+            try ( ResultSet rs = pstm.executeQuery()) {
                 while (rs.next()) {
                     for (PowerColumnType st : selectColumns) {
                         st.push(e, rs);
@@ -787,12 +902,20 @@ public abstract class PowerManager {
         }
     }
 
+    public <E> E get(Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
+        return get(null, id, entityClass, columnNames);
+    }
+
     public <E> E get(String schema, Serializable id, Class<E> entityClass, String... columnNames) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return get(schema, id, entityClass, conn, columnNames);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
         }
+    }
+
+    public <E> E get(Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws PowerQueryException {
+        return get(null, id, entityClass, conn, columnNames);
     }
 
     public <E> E get(String schema, Serializable id, Class<E> entityClass, Connection conn, String... columnNames) throws PowerQueryException {
@@ -807,8 +930,8 @@ public abstract class PowerManager {
             return sct;
         }).collect(Collectors.toList());
 
-        List<ColumnType> ids = tableType.getColumns();
-        ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+        List<ColumnType> ids = tableType.getIdColumns();
+        // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
         List<PowerColumnType> whereParams = new ArrayList();
         for (ColumnType ct : ids) {
@@ -848,7 +971,7 @@ public abstract class PowerManager {
         Iterator<PowerColumnType> colIt = whereParams.iterator();
         while (colIt.hasNext()) {
             PowerColumnType ct = colIt.next();
-            if (ct.getColumnType().isPrimary()) {
+            if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                 sb.append(ct.getColumnAlias());
                 sb.append(" = ?");
                 if (colIt.hasNext()) {
@@ -866,13 +989,13 @@ public abstract class PowerManager {
         // System.out.println(" refresh QUERY: " + queryString);
         E e = null;
 
-        try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
             for (PowerColumnType powerValue : whereParams) {
                 powerValue.powerStatement(pstm, i++);
             }
-            try (ResultSet rs = pstm.executeQuery()) {
+            try ( ResultSet rs = pstm.executeQuery()) {
                 while (rs.next()) {
                     e = entityClass.getConstructor().newInstance();
                     for (PowerColumnType st : selectColumns) {
@@ -891,7 +1014,7 @@ public abstract class PowerManager {
     }
 
     public synchronized TableType getTableType(Class entityClass) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return getTableType(entityClass, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -954,7 +1077,7 @@ public abstract class PowerManager {
         String query = sb.toString();
         query = getDialect().limit(query, 1);
 
-        try (PreparedStatement pst = conn.prepareStatement(query); ResultSet rs = pst.executeQuery()) {
+        try ( PreparedStatement pst = conn.prepareStatement(query);  ResultSet rs = pst.executeQuery()) {
             ResultSetMetaData mdrd = rs.getMetaData();
 
             for (int i = 0; i < columns.size(); i++) {
@@ -981,13 +1104,14 @@ public abstract class PowerManager {
         tableType.setManyToManyTypes(manyToManyTypes);
         tableType.setOneToManyTypes(oneToManyTypes);
 
+        if (debugConfig) {
+            Gson gson = new GsonBuilder()
+                    .excludeFieldsWithModifiers(Modifier.PROTECTED)
+                    .setPrettyPrinting().create();
+            String json = gson.toJson(tableType);
+            System.out.println("TablaType " + json);
+        }
 
-        /*Gson gson = new GsonBuilder()
-                .excludeFieldsWithModifiers(Modifier.PROTECTED)
-                .setPrettyPrinting().create();
-        String json = gson.toJson(tableType);
-
-        System.out.println("TablaType " + json);*/
         return tableType;
     }
 
@@ -1013,6 +1137,26 @@ public abstract class PowerManager {
             ct.setEnumerated(enu);
 
             columns.add(ct);
+        }
+
+        EmbeddedId eidann = field.getAnnotation(EmbeddedId.class);
+
+        if (eidann != null) {
+
+            Field[] idfields = field.getType().getDeclaredFields();
+
+            for (Field farid : idfields) {
+
+                Column farann = farid.getAnnotation(Column.class);
+                if (farann != null) {
+                    ColumnType ct = new ColumnType(farann.name(), farid.getName(), farid.getType(), tableType);
+                    ct.setPrimary(false);
+                    ct.setEmbedded(true);
+                    ct.setEmbeddedFieldName(field.getName());
+                    ct.setEmbeddedFieldClass(field.getType());
+                    columns.add(ct);
+                }
+            }
         }
     }
 
@@ -1169,7 +1313,7 @@ public abstract class PowerManager {
     }
 
     public <E> E unique(Query<E> query) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return unique(query, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -1185,7 +1329,7 @@ public abstract class PowerManager {
     }
 
     public <E> List<E> list(Query<E> query) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return list(query, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -1207,14 +1351,14 @@ public abstract class PowerManager {
             logger.log(Level.INFO, q);
         }
 
-        try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
             for (PowerColumnType powerValue : parametrizedQuery.getParams()) {
                 powerValue.powerStatement(pstm, i++);
             }
 
-            try (ResultSet rs = pstm.executeQuery()) {
+            try ( ResultSet rs = pstm.executeQuery()) {
                 int k = 0;
                 while (rs.next()) {
                     if (unique && k > 0) {
@@ -1267,7 +1411,7 @@ public abstract class PowerManager {
             logger.log(Level.INFO, q);
         }
         List fetchList = new ArrayList();
-        try (PreparedStatement pstm = conn.prepareStatement(pq.getQuery())) {
+        try ( PreparedStatement pstm = conn.prepareStatement(pq.getQuery())) {
 
             int j = 1;
             for (PowerColumnType pct : pq.getParams()) {
@@ -1275,7 +1419,7 @@ public abstract class PowerManager {
                 pct.powerStatement(pstm, j++);
             }
 
-            try (ResultSet rs = pstm.executeQuery()) {
+            try ( ResultSet rs = pstm.executeQuery()) {
                 while (rs.next()) {
                     Object instance;
                     try {
@@ -1330,7 +1474,7 @@ public abstract class PowerManager {
     }
 
     public Integer count(Query query) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return count(query, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -1348,14 +1492,14 @@ public abstract class PowerManager {
             logger.log(Level.INFO, q);
         }
 
-        try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
             for (PowerColumnType powerValue : pq.getParams()) {
                 powerValue.powerStatement(pstm, i++);
             }
 
-            try (ResultSet rs = pstm.executeQuery()) {
+            try ( ResultSet rs = pstm.executeQuery()) {
                 if (rs.next()) {
                     c = rs.getInt(1);
                 }
@@ -1368,7 +1512,7 @@ public abstract class PowerManager {
     }
 
     public int execute(Query query) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return execute(query, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -1385,7 +1529,7 @@ public abstract class PowerManager {
             String q = logs(queryString, pq.getParams());
             logger.log(Level.INFO, q);
         }
-        try (PreparedStatement pstm = conn.prepareStatement(queryString)) {
+        try ( PreparedStatement pstm = conn.prepareStatement(queryString)) {
 
             int i = 1;
             for (PowerColumnType powerValue : pq.getParams()) {
@@ -1567,7 +1711,7 @@ public abstract class PowerManager {
     }
 
     public ParametrizedQuery dryRun(Query query, boolean count) throws PowerQueryException {
-        try (Connection conn = getConnection()) {
+        try ( Connection conn = getConnection()) {
             return dryRun(query, count, conn);
         } catch (SQLException ex) {
             throw new PowerQueryException(ex);
@@ -1864,8 +2008,8 @@ public abstract class PowerManager {
                 }
             }
 
-            List<ColumnType> ids = tableType.getColumns();
-            ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+            List<ColumnType> ids = tableType.getIdColumns();
+            // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
             for (ColumnType ct : ids) {
                 PowerColumnType param = new PowerColumnType(ct);
@@ -1877,7 +2021,7 @@ public abstract class PowerManager {
             Iterator<PowerColumnType> colIt = params.iterator();
             while (colIt.hasNext()) {
                 PowerColumnType ct = colIt.next();
-                if (ct.getColumnType().isPrimary()) {
+                if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                     sb.append("_e.").append(ct.getColumnAlias());
                     sb.append(" = ?");
                     if (colIt.hasNext()) {
@@ -1966,8 +2110,8 @@ public abstract class PowerManager {
                 }
             }
 
-            List<ColumnType> ids = tableType.getColumns();
-            ids = ids.stream().filter(c -> c.isPrimary()).collect(Collectors.toList());
+            List<ColumnType> ids = tableType.getIdColumns();
+            // ids = ids.stream().filter(c -> c.isPrimary() || c.isEmbedded()).collect(Collectors.toList());
 
             for (ColumnType ct : ids) {
                 PowerColumnType param = new PowerColumnType(ct);
@@ -1979,7 +2123,7 @@ public abstract class PowerManager {
             Iterator<PowerColumnType> colIt = params.iterator();
             while (colIt.hasNext()) {
                 PowerColumnType ct = colIt.next();
-                if (ct.getColumnType().isPrimary()) {
+                if (ct.getColumnType().isPrimary() || ct.getColumnType().isEmbedded()) {
                     sb.append("_e.").append(ct.getColumnAlias());
                     sb.append(" = ?");
                     if (colIt.hasNext()) {
@@ -2166,6 +2310,14 @@ public abstract class PowerManager {
 
     public void setDebugSQL(boolean debugSQL) {
         this.debugSQL = debugSQL;
+    }
+
+    public boolean isDebugConfig() {
+        return debugConfig;
+    }
+
+    public void setDebugConfig(boolean debugConfig) {
+        this.debugConfig = debugConfig;
     }
 
     private String logs(String query, List<PowerColumnType> params) {
